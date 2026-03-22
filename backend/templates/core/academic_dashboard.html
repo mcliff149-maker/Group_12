@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+{% block title %}Academic Dashboard{% endblock %}
+{% block content %}
+<h2>Academic Supervisor Dashboard</h2>
+
+<div class="card">
+    <h3>My Assigned Placements</h3>
+    {% if placements %}
+    <table>
+        <tr><th>Student</th><th>Company</th><th>Period</th><th>Status</th><th>Actions</th></tr>
+        {% for p in placements %}
+        <tr>
+            <td>{{ p.student }}</td>
+            <td>{{ p.company.name }}</td>
+            <td>{{ p.start_date }} — {{ p.end_date }}</td>
+            <td><span class="badge badge-{{ p.status }}">{{ p.get_status_display }}</span></td>
+            <td><a href="{% url 'academic_evaluation' p.id %}" class="btn btn-warning">Submit Evaluation</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>No placements assigned.</p>
+    {% endif %}
+</div>
+{% endblock %}

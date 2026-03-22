@@ -1,0 +1,42 @@
+{% extends 'core/base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<h2>Admin Dashboard — All Placements</h2>
+
+<div class="card">
+    <table>
+        <tr>
+            <th>Student</th>
+            <th>Company</th>
+            <th>Status</th>
+            <th>Supervisor Score</th>
+            <th>Academic Score</th>
+            <th>Log Score</th>
+            <th>Final Score</th>
+            <th>Grade</th>
+            <th>Actions</th>
+        </tr>
+        {% for p in placements %}
+        <tr>
+            <td>{{ p.student }}</td>
+            <td>{{ p.company.name }}</td>
+            <td><span class="badge badge-{{ p.status }}">{{ p.get_status_display }}</span></td>
+            {% with ws=p.weighted_score %}
+            {% if ws %}
+                <td>{{ ws.supervisor_score|floatformat:2 }}</td>
+                <td>{{ ws.academic_score|floatformat:2 }}</td>
+                <td>{{ ws.log_score|floatformat:2 }}</td>
+                <td><strong>{{ ws.final_score|floatformat:2 }}</strong></td>
+                <td><strong>{{ ws.grade }}</strong></td>
+            {% else %}
+                <td colspan="5" style="color:#999;">Not computed</td>
+            {% endif %}
+            {% endwith %}
+            <td><a href="{% url 'compute_score' p.id %}" class="btn btn-primary">Compute Score</a></td>
+        </tr>
+        {% empty %}
+            <tr><td colspan="9">No placements found.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

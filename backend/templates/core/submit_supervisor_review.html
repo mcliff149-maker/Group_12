@@ -1,0 +1,13 @@
+{% extends 'core/base.html' %}
+{% block title %}Submit Supervisor Review{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Supervisor Review — {{ placement.student }} at {{ placement.company.name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Submit Review</button>
+        <a href="{% url 'supervisor_dashboard' %}" class="btn" style="background:#95a5a6;color:white;margin-left:8px;">Cancel</a>
+    </form>
+</div>
+{% endblock %}
