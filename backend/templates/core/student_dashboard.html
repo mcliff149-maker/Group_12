@@ -1,0 +1,61 @@
+{% extends 'core/base.html' %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+<h2>Student Dashboard</h2>
+{% if error %}
+    <div class="card"><p>{{ error }}</p></div>
+{% else %}
+<div class="card">
+    <h3>Profile</h3>
+    <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
+    <p><strong>Reg. Number:</strong> {{ student.reg_number }}</p>
+    <p><strong>Program:</strong> {{ student.program }}</p>
+    <p><strong>Year:</strong> {{ student.year_of_study }}</p>
+</div>
+
+{% if active_placement %}
+<div class="card">
+    <h3>Active Placement</h3>
+    <p><strong>Company:</strong> {{ active_placement.company.name }}</p>
+    <p><strong>Period:</strong> {{ active_placement.start_date }} — {{ active_placement.end_date }}</p>
+    <p><strong>Status:</strong> <span class="badge badge-{{ active_placement.status }}">{{ active_placement.get_status_display }}</span></p>
+    <a href="{% url 'submit_log' active_placement.id %}" class="btn btn-primary">Submit Weekly Log</a>
+</div>
+
+<div class="card">
+    <h3>Weekly Logs</h3>
+    {% if active_placement.weekly_logs.all %}
+    <table>
+        <tr><th>Week</th><th>Submitted</th><th>Approved</th></tr>
+        {% for log in active_placement.weekly_logs.all %}
+        <tr>
+            <td>Week {{ log.week_number }}</td>
+            <td>{{ log.submitted_at|date:"d M Y" }}</td>
+            <td>{% if log.is_approved %}✅{% else %}⏳ Pending{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p>No logs submitted yet.</p>
+    {% endif %}
+</div>
+
+{% with ws=active_placement.weighted_score %}
+{% if ws %}
+<div class="card">
+    <h3>Weighted Score</h3>
+    <table>
+        <tr><th>Supervisor Score (50%)</th><td>{{ ws.supervisor_score|floatformat:2 }}</td></tr>
+        <tr><th>Academic Score (30%)</th><td>{{ ws.academic_score|floatformat:2 }}</td></tr>
+        <tr><th>Log Score (20%)</th><td>{{ ws.log_score|floatformat:2 }}</td></tr>
+        <tr><th>Final Score</th><td><strong>{{ ws.final_score|floatformat:2 }}</strong></td></tr>
+        <tr><th>Grade</th><td><strong>{{ ws.grade }}</strong></td></tr>
+    </table>
+</div>
+{% endif %}
+{% endwith %}
+{% else %}
+<div class="card"><p>No active placement found.</p></div>
+{% endif %}
+{% endif %}
+{% endblock %}

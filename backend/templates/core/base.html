@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILES — {% block title %}Internship Logging &amp; Evaluation System{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f9; color: #333; }
+        header { background: #2c3e50; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        nav a { color: #ecf0f1; margin-left: 16px; text-decoration: none; }
+        nav a:hover { text-decoration: underline; }
+        main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+        .card { background: white; border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e0e0e0; }
+        th { background: #ecf0f1; }
+        .btn { display: inline-block; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; cursor: pointer; border: none; }
+        .btn-primary { background: #2980b9; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-warning { background: #e67e22; color: white; }
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; }
+        .badge-active { background: #d4efdf; color: #1e8449; }
+        .badge-completed { background: #d6eaf8; color: #1a5276; }
+        .badge-suspended { background: #fdebd0; color: #935116; }
+        form label { display: block; margin-top: 12px; font-weight: bold; }
+        form input, form textarea, form select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px; box-sizing: border-box; }
+        form button[type=submit] { margin-top: 16px; }
+        .messages { list-style: none; padding: 0; }
+        .messages li { padding: 10px; margin-bottom: 8px; border-radius: 4px; background: #d4efdf; color: #1e8449; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>ILES — Internship Logging &amp; Evaluation System</h1>
+    <nav>
+        {% if user.is_authenticated %}
+            <span>{{ user.get_full_name|default:user.username }} ({{ user.role }})</span>
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            <a href="{% url 'logout' %}">Logout</a>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+        {% endif %}
+    </nav>
+</header>
+<main>
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>
