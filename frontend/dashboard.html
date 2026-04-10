@@ -1,0 +1,1672 @@
+<!--
+  ILES Dashboard — Internship Logging & Evaluation System
+  ========================================================
+  HOW TO OPEN:
+    Simply open this file in any modern web browser (Chrome, Firefox, Edge, Safari).
+    No server required — all data is stored in the browser's localStorage.
+
+  SWITCHING ROLES:
+    Use the "Role" dropdown in the top-right header to switch between:
+      • Student
+      • Academic Supervisor
+      • Internship Supervisor
+      • System Administrator
+
+  SWITCHING USERS (within a role):
+    Once a role is selected, use the "View as" dropdown next to the role
+    selector to simulate a specific user of that role (pre-seeded demo users
+    are created automatically on first load).
+
+  DATA STORAGE:
+    All data is persisted in localStorage under the "iles_*" key namespace.
+    The DB object (window.DB) provides all data-access helpers — swap its
+    get() / save() methods with fetch() calls to integrate with the Django
+    backend at any time without changing any other code.
+
+    To reset all data: open the browser console and run  localStorage.clear()
+    then reload the page.
+
+  INTEGRATING WITH THE DJANGO BACKEND:
+    1. Replace  DB.get(key)       →  await fetch('/api/' + key + '/')
+    2. Replace  DB.save(key,data) →  await fetch('/api/'+key+'/', {method:'POST',body:JSON.stringify(data)})
+    3. Remove the DB.seed() call and all localStorage references.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ILES — Internship Logging &amp; Evaluation Dashboard</title>
+  <style>
+    /* ===== CSS Variables — pastel palette ===== */
+    :root {
+      --bg:               #f5f0ff;
+      --surface:          #ffffff;
+      --border:           #d8c8f0;
+      --shadow:           0 2px 8px rgba(100,80,160,.10);
+
+      --header-bg:        #c8b4e4;
+      --header-text:      #3d2b5a;
+
+      --text:             #3d3d5c;
+      --text-muted:       #7a7a9d;
+
+      --role-student:     #b8e4d4;
+      --role-academic:    #d4b8e8;
+      --role-supervisor:  #f0d8b8;
+      --role-admin:       #b8d4e8;
+
+      --btn-primary:        #9bc4d8;
+      --btn-primary-hover:  #78aac4;
+      --btn-success:        #9dd4a4;
+      --btn-success-hover:  #78b87e;
+      --btn-danger:         #f0a4a4;
+      --btn-danger-hover:   #d87878;
+      --btn-warning:        #f0c87c;
+      --btn-warning-hover:  #d4a850;
+      --btn-secondary:      #d4c8e8;
+      --btn-secondary-hover:#b8a8d4;
+
+      --tab-active-bg:    #9bc4d8;
+      --tab-active-text:  #ffffff;
+      --tab-inactive-bg:  #e8e0f8;
+      --tab-inactive-text:#7a7a9d;
+
+      --modal-overlay:    rgba(80,60,120,.28);
+    }
+
+    /* ===== Reset ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ===== Header ===== */
+    header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(100,80,160,.18);
+      position: sticky; top: 0; z-index: 100;
+      flex-wrap: wrap; gap: 10px;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .02em; }
+    header h1 span { font-size: .82em; opacity: .72; }
+    .header-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .hc-group { display: flex; align-items: center; gap: 7px; font-size: .88rem; font-weight: 600; }
+    .hc-group select {
+      padding: 6px 12px; border-radius: 20px;
+      border: 2px solid var(--header-text);
+      background: rgba(255,255,255,.72); color: var(--header-text);
+      font-weight: 600; font-size: .88rem; cursor: pointer; max-width: 210px;
+    }
+
+    /* ===== Main ===== */
+    main { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
+
+    /* ===== Role sections ===== */
+    .role-section { display: none; }
+    .role-section.active { display: block; }
+
+    .section-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 22px; padding: 16px 20px;
+      border-radius: 12px; background: var(--surface); box-shadow: var(--shadow);
+    }
+    .section-header h2 { font-size: 1.35rem; }
+    .role-badge {
+      padding: 5px 15px; border-radius: 20px;
+      font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .role-badge.student    { background: var(--role-student);    color: #1e6050; }
+    .role-badge.academic   { background: var(--role-academic);   color: #502060; }
+    .role-badge.supervisor { background: var(--role-supervisor); color: #604010; }
+    .role-badge.admin      { background: var(--role-admin);      color: #103060; }
+
+    /* ===== Tabs ===== */
+    .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 8px 20px; border-radius: 20px; border: none; cursor: pointer;
+      font-size: .88rem; font-weight: 600; transition: background .18s, box-shadow .18s;
+      background: var(--tab-inactive-bg); color: var(--tab-inactive-text);
+    }
+    .tab-btn.active { background: var(--tab-active-bg); color: var(--tab-active-text); box-shadow: 0 2px 8px rgba(100,160,200,.28); }
+    .tab-btn:hover:not(.active) { background: #d4c8f0; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ===== Cards ===== */
+    .card {
+      background: var(--surface); border-radius: 12px; padding: 22px 24px;
+      margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .card h3 { font-size: 1.03rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--surface); border-radius: 12px; padding: 22px 18px;
+      text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .stat-card .stat-value { font-size: 2.1rem; font-weight: 700; color: var(--btn-primary); }
+    .stat-card .stat-label { font-size: .84rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 18px; border-radius: 20px; border: none; cursor: pointer;
+      font-size: .875rem; font-weight: 600; transition: background .18s, transform .1s;
+      text-decoration: none; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary   { background: var(--btn-primary);   color: #1a3a4a; }
+    .btn-primary:hover   { background: var(--btn-primary-hover); }
+    .btn-success   { background: var(--btn-success);   color: #1a3a1a; }
+    .btn-success:hover   { background: var(--btn-success-hover); }
+    .btn-danger    { background: var(--btn-danger);    color: #4a1a1a; }
+    .btn-danger:hover    { background: var(--btn-danger-hover); }
+    .btn-warning   { background: var(--btn-warning);   color: #4a3010; }
+    .btn-warning:hover   { background: var(--btn-warning-hover); }
+    .btn-secondary { background: var(--btn-secondary); color: #3a2a5a; }
+    .btn-secondary:hover { background: var(--btn-secondary-hover); }
+    .btn-sm  { padding: 5px 13px; font-size: .8rem; }
+
+    /* ===== Tables ===== */
+    .table-wrapper { overflow-x: auto; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    thead th {
+      background: var(--tab-inactive-bg); color: var(--text-muted);
+      font-weight: 600; text-align: left; padding: 11px 14px;
+      border-bottom: 2px solid var(--border); white-space: nowrap;
+    }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(180,160,240,.05); }
+    .table-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .empty-state { text-align: center; padding: 36px 20px; color: var(--text-muted); font-size: .97rem; }
+
+    /* ===== Forms ===== */
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 2px; }
+    .form-group label { font-weight: 600; font-size: .82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+    .form-group input, .form-group textarea, .form-group select {
+      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .9rem; background: var(--surface); color: var(--text);
+      transition: border-color .18s, box-shadow .18s; font-family: inherit;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      outline: none; border-color: var(--btn-primary);
+      box-shadow: 0 0 0 3px rgba(155,196,216,.22);
+    }
+    .form-group textarea { resize: vertical; min-height: 78px; }
+    .form-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+    /* ===== Badges ===== */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: .77rem; font-weight: 600; }
+    .badge-active     { background: #c8f0d8; color: #1e7040; }
+    .badge-completed  { background: #c8d8f0; color: #1e4070; }
+    .badge-suspended  { background: #f0e0c8; color: #704020; }
+    .badge-pending    { background: #f8f4c8; color: #707020; }
+    .badge-approved   { background: #c8f0d8; color: #1e7040; }
+    .badge-student    { background: var(--role-student);    color: #1e6050; }
+    .badge-academic   { background: var(--role-academic);   color: #502060; }
+    .badge-supervisor { background: var(--role-supervisor); color: #604010; }
+    .badge-admin      { background: var(--role-admin);      color: #103060; }
+
+    /* ===== Section toolbar ===== */
+    .section-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .section-toolbar h3 { margin: 0; }
+
+    /* ===== Info pairs ===== */
+    .info-pair { display: flex; gap: 8px; margin-bottom: 7px; font-size: .9rem; }
+    .info-pair .label { font-weight: 600; color: var(--text-muted); min-width: 130px; flex-shrink: 0; }
+    .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: var(--modal-overlay); z-index: 200;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: 16px;
+      padding: 28px 32px; width: 100%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(80,60,140,.22);
+      border: 1px solid var(--border); position: relative;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 1.08rem; }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      font-size: 1.4rem; color: var(--text-muted); line-height: 1;
+      padding: 2px 7px; border-radius: 6px;
+    }
+    .modal-close:hover { background: var(--tab-inactive-bg); }
+
+    /* ===== Toast ===== */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      padding: 12px 20px; border-radius: 10px; font-size: .9rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(80,60,140,.15); max-width: 320px;
+      animation: slideIn .28s ease; display: flex; align-items: center; gap: 10px;
+    }
+    .toast-success { background: #d8f4dd; color: #1e5a28; border-left: 4px solid #4caf78; }
+    .toast-error   { background: #f4d8d8; color: #5a1e1e; border-left: 4px solid #d04040; }
+    .toast-info    { background: #d8e8f4; color: #1e3a5a; border-left: 4px solid #4080c0; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ===== JSON editor ===== */
+    .json-editor { font-family: 'Courier New', monospace; font-size: .84rem; background: #f8f4ff; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 600px) {
+      header { padding: 12px 16px; }
+      main   { padding: 16px 12px; }
+      .modal { padding: 20px 16px; max-width: 98vw; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <h1>ILES <span>— Internship Logging &amp; Evaluation System</span></h1>
+  <div class="header-controls">
+    <div class="hc-group">
+      <label for="roleSelector">Role:</label>
+      <select id="roleSelector" onchange="switchRole(this.value)">
+        <option value="student">🎓 Student</option>
+        <option value="academic">📚 Academic Supervisor</option>
+        <option value="supervisor">🏢 Internship Supervisor</option>
+        <option value="admin">⚙️ Administrator</option>
+      </select>
+    </div>
+    <div class="hc-group" id="user-selector-wrap">
+      <label for="userSelector">View as:</label>
+      <select id="userSelector" onchange="switchUser(this.value)"></select>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================================================ STUDENT ================================================ -->
+  <section id="section-student" class="role-section active">
+    <div class="section-header">
+      <span class="role-badge student">Student</span>
+      <h2 id="student-heading">Student Dashboard</h2>
+    </div>
+    <div class="tabs" id="student-tabs">
+      <button class="tab-btn active" onclick="switchTab('student','profile')">👤 Profile</button>
+      <button class="tab-btn" onclick="switchTab('student','internship')">🏢 Internship</button>
+      <button class="tab-btn" onclick="switchTab('student','logs')">📋 Weekly Logs</button>
+      <button class="tab-btn" onclick="switchTab('student','report')">📄 Final Report</button>
+    </div>
+
+    <div id="student-profile" class="tab-panel active">
+      <div class="card"><h3>👤 My Profile</h3><div id="student-profile-form"></div></div>
+    </div>
+
+    <div id="student-internship" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>🏢 Internship Applications</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('placement','add')">+ New Application</button>
+        </div>
+        <div id="student-placements-list"></div>
+      </div>
+    </div>
+
+    <div id="student-logs" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>📋 Weekly Logs</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('log','add')">+ Submit Log</button>
+        </div>
+        <div id="student-logs-list"></div>
+      </div>
+    </div>
+
+    <div id="student-report" class="tab-panel">
+      <div class="card"><h3>📄 Final Report</h3><div id="student-report-form"></div></div>
+    </div>
+  </section>
+
+  <!-- ================================================ ACADEMIC SUPERVISOR ================================================ -->
+  <section id="section-academic" class="role-section">
+    <div class="section-header">
+      <span class="role-badge academic">Academic Supervisor</span>
+      <h2 id="academic-heading">Academic Supervisor Dashboard</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('academic','students')">👥 My Students</button>
+      <button class="tab-btn" onclick="switchTab('academic','logs')">📋 Review Logs</button>
+      <button class="tab-btn" onclick="switchTab('academic','notes')">📝 Meeting Notes</button>
+      <button class="tab-btn" onclick="switchTab('academic','evals')">⭐ Evaluations</button>
+    </div>
+
+    <div id="academic-students" class="tab-panel active">
+      <div class="card"><h3>👥 Assigned Students</h3><div id="academic-students-list"></div></div>
+    </div>
+    <div id="academic-logs" class="tab-panel">
+      <div class="card"><h3>📋 Student Weekly Logs</h3><div id="academic-logs-list"></div></div>
+    </div>
+    <div id="academic-notes" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>📝 Meeting Notes</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('meeting','add')">+ Add Note</button>
+        </div>
+        <div id="academic-notes-list"></div>
+      </div>
+    </div>
+    <div id="academic-evals" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>⭐ Evaluation Feedback</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('acad-eval','add')">+ New Evaluation</button>
+        </div>
+        <div id="academic-evals-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================ INTERNSHIP SUPERVISOR ================================================ -->
+  <section id="section-supervisor" class="role-section">
+    <div class="section-header">
+      <span class="role-badge supervisor">Internship Supervisor</span>
+      <h2 id="supervisor-heading">Internship Supervisor Dashboard</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('supervisor','interns')">👥 My Interns</button>
+      <button class="tab-btn" onclick="switchTab('supervisor','attendance')">✅ Attendance &amp; Hours</button>
+      <button class="tab-btn" onclick="switchTab('supervisor','supevals')">📊 Evaluations</button>
+    </div>
+
+    <div id="supervisor-interns" class="tab-panel active">
+      <div class="card"><h3>👥 Assigned Interns</h3><div id="supervisor-interns-list"></div></div>
+    </div>
+    <div id="supervisor-attendance" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>✅ Attendance &amp; Hours</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('attendance','add')">+ Record Attendance</button>
+        </div>
+        <div id="supervisor-attendance-list"></div>
+      </div>
+    </div>
+    <div id="supervisor-supevals" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>📊 Intern Evaluations</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('sup-eval','add')">+ New Evaluation</button>
+        </div>
+        <div id="supervisor-evals-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================ ADMIN ================================================ -->
+  <section id="section-admin" class="role-section">
+    <div class="section-header">
+      <span class="role-badge admin">Administrator</span>
+      <h2>System Administration Dashboard</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('admin','users')">👤 Users</button>
+      <button class="tab-btn" onclick="switchTab('admin','relationships')">🔗 Placements</button>
+      <button class="tab-btn" onclick="switchTab('admin','templates')">📋 Eval Templates</button>
+      <button class="tab-btn" onclick="switchTab('admin','summary')">📊 Summary</button>
+    </div>
+
+    <div id="admin-users" class="tab-panel active">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>👤 User Management</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('user','add')">+ Add User</button>
+        </div>
+        <div id="admin-users-list"></div>
+      </div>
+    </div>
+
+    <div id="admin-relationships" class="tab-panel">
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-toolbar">
+          <h3>🏢 Companies</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('company','add')">+ Add Company</button>
+        </div>
+        <div id="admin-companies-list"></div>
+      </div>
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>🔗 Placements</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('admin-placement','add')">+ Add Placement</button>
+        </div>
+        <div id="admin-placements-list"></div>
+      </div>
+    </div>
+
+    <div id="admin-templates" class="tab-panel">
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>📋 Evaluation Templates</h3>
+          <button class="btn btn-primary btn-sm" onclick="openModal('template','add')">+ New Template</button>
+        </div>
+        <div id="admin-templates-list"></div>
+      </div>
+    </div>
+
+    <div id="admin-summary" class="tab-panel">
+      <div class="cards-grid" id="admin-stats-cards"></div>
+      <div class="card">
+        <div class="section-toolbar">
+          <h3>📊 All Placements Summary</h3>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+        <div id="admin-summary-table"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">—</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== TOASTS ===== -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ==========================================================================
+   DATA LAYER  — localStorage helpers
+   To migrate to an API: replace DB.get / DB.save with fetch() calls.
+   ========================================================================== */
+const KEYS = {
+  users:      'iles_users',
+  placements: 'iles_placements',
+  companies:  'iles_companies',
+  logs:       'iles_weekly_logs',
+  supReviews: 'iles_sup_reviews',
+  acadEvals:  'iles_acad_evals',
+  notes:      'iles_meeting_notes',
+  templates:  'iles_eval_templates',
+  reports:    'iles_reports',
+  attendance: 'iles_attendance',
+};
+
+const DB = {
+  get:    k       => JSON.parse(localStorage.getItem(k) || '[]'),
+  save:   (k, v)  => localStorage.setItem(k, JSON.stringify(v)),
+  newId:  ()      => Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+  find:   (k, id) => DB.get(k).find(x => x.id === id) || null,
+
+  insert(k, item) {
+    const data = DB.get(k);
+    item.id = DB.newId();
+    item.createdAt = new Date().toISOString();
+    data.push(item);
+    DB.save(k, data);
+    return item;
+  },
+  update(k, id, changes) {
+    const data = DB.get(k);
+    const i = data.findIndex(x => x.id === id);
+    if (i < 0) return null;
+    data[i] = { ...data[i], ...changes };
+    DB.save(k, data);
+    return data[i];
+  },
+  remove(k, id) {
+    DB.save(k, DB.get(k).filter(x => x.id !== id));
+  },
+
+  seed() {
+    if (localStorage.getItem(SEED_KEY)) return;
+
+    DB.save(KEYS.users, [
+      { id:'u1', name:'Alice Mwangi',  email:'alice@example.com',  role:'student',    studentId:'ST2024001', program:'Computer Science',      phone:'+254 700 000 001', year:'3',  createdAt:'2024-01-01T00:00:00Z' },
+      { id:'u2', name:'Brian Otieno',  email:'brian@example.com',  role:'student',    studentId:'ST2024002', program:'Information Technology', phone:'+254 700 000 002', year:'2',  createdAt:'2024-01-01T00:00:00Z' },
+      { id:'u3', name:'Dr Carol Njeru',email:'carol@example.com',  role:'academic',   department:'CS Dept',  staffId:'AC001',                  phone:'+254 700 000 003',             createdAt:'2024-01-01T00:00:00Z' },
+      { id:'u4', name:'David Kamau',   email:'david@example.com',  role:'supervisor', company:'TechCorp Ltd',designation:'Senior Engineer',    phone:'+254 700 000 004',             createdAt:'2024-01-01T00:00:00Z' },
+      { id:'u5', name:'Admin User',    email:'admin@example.com',  role:'admin',                                                               phone:'+254 700 000 005',             createdAt:'2024-01-01T00:00:00Z' },
+    ]);
+
+    DB.save(KEYS.companies, [
+      { id:'c1', name:'TechCorp Ltd',  industry:'Information Technology', address:'123 Tech Ave, Nairobi',   email:'hr@techcorp.com',  phone:'+254 20 000 001', createdAt:'2024-01-01T00:00:00Z' },
+      { id:'c2', name:'FinServe Ltd',  industry:'Financial Services',     address:'456 Finance Rd, Nairobi', email:'hr@finserve.com',  phone:'+254 20 000 002', createdAt:'2024-01-01T00:00:00Z' },
+    ]);
+
+    DB.save(KEYS.placements, [
+      { id:'p1', studentId:'u1', companyId:'c1', supervisorId:'u4', academicId:'u3', role:'Software Intern',     startDate:'2024-06-01', endDate:'2024-08-31', status:'active',    description:'Developing web applications using React and Node.js.', createdAt:'2024-05-20T00:00:00Z' },
+      { id:'p2', studentId:'u2', companyId:'c2', supervisorId:'u4', academicId:'u3', role:'Data Analyst Intern', startDate:'2024-06-01', endDate:'2024-08-31', status:'active',    description:'Analysing financial data and building dashboards.',    createdAt:'2024-05-21T00:00:00Z' },
+    ]);
+
+    DB.save(KEYS.logs, [
+      { id:'l1', placementId:'p1', studentId:'u1', weekNumber:1, hours:40, activities:'Set up dev environment; attended onboarding.', challenges:'Understanding codebase structure.',     skills:'Git, React basics',  submittedAt:'2024-06-08T10:00:00Z', isApproved:true,  academicComment:'Good start!',       supervisorComment:'Well done.',        createdAt:'2024-06-08T10:00:00Z' },
+      { id:'l2', placementId:'p1', studentId:'u1', weekNumber:2, hours:38, activities:'Worked on UI components for the dashboard.',  challenges:'State management in React.',           skills:'React hooks, CSS Grid', submittedAt:'2024-06-15T10:00:00Z', isApproved:false, academicComment:'',                  supervisorComment:'',                  createdAt:'2024-06-15T10:00:00Z' },
+      { id:'l3', placementId:'p2', studentId:'u2', weekNumber:1, hours:42, activities:'Analysed Q1 sales data; created pivot tables.', challenges:'Data quality issues in source files.', skills:'Excel, SQL basics',  submittedAt:'2024-06-08T10:00:00Z', isApproved:true,  academicComment:'',                  supervisorComment:'Excellent effort.', createdAt:'2024-06-08T10:00:00Z' },
+    ]);
+
+    DB.save(KEYS.notes, [
+      { id:'mn1', placementId:'p1', authorId:'u3', date:'2024-06-10', notes:'Discussed UI component progress. Alice is on track. Suggested reviewing React useEffect docs.', createdAt:'2024-06-10T12:00:00Z' },
+    ]);
+
+    DB.save(KEYS.acadEvals, [
+      { id:'ae1', placementId:'p1', evaluatorId:'u3', reportQuality:8, logCompleteness:9, outcomes:8, presentation:7, comments:'Very good progress. Report structure needs slight improvement.', evaluatedAt:'2024-08-10T00:00:00Z', createdAt:'2024-08-10T00:00:00Z' },
+    ]);
+
+    DB.save(KEYS.supReviews, [
+      { id:'sr1', placementId:'p1', reviewerId:'u4', reviewType:'midterm', punctuality:9, technical:8, communication:8, initiative:7, comments:'Alice shows strong technical skills and is always on time.', reviewedAt:'2024-07-15T00:00:00Z', createdAt:'2024-07-15T00:00:00Z' },
+    ]);
+
+    DB.save(KEYS.attendance, [
+      { id:'at1', placementId:'p1', supervisorId:'u4', studentId:'u1', week:'Week 1', hoursPresent:40, hoursAbsent:0, comments:'Perfect attendance.', recordedAt:'2024-06-08', createdAt:'2024-06-08T00:00:00Z' },
+    ]);
+
+    DB.save(KEYS.reports, []);
+
+    DB.save(KEYS.templates, [
+      { id:'t1', name:'Mid-Term Supervisor Evaluation', createdAt:'2024-01-01T00:00:00Z', fields:[
+        { name:'punctuality',   label:'Punctuality (1-10)',      type:'number'   },
+        { name:'technical',     label:'Technical Skills (1-10)', type:'number'   },
+        { name:'communication', label:'Communication (1-10)',    type:'number'   },
+        { name:'initiative',    label:'Initiative (1-10)',       type:'number'   },
+        { name:'comments',      label:'Overall Comments',        type:'textarea' },
+      ]},
+      { id:'t2', name:'Academic Progress Evaluation', createdAt:'2024-01-01T00:00:00Z', fields:[
+        { name:'reportQuality',    label:'Report Quality (1-10)',    type:'number'   },
+        { name:'logCompleteness',  label:'Log Completeness (1-10)',  type:'number'   },
+        { name:'outcomes',         label:'Learning Outcomes (1-10)', type:'number'   },
+        { name:'presentation',     label:'Presentation (1-10)',      type:'number'   },
+        { name:'comments',         label:'Comments',                 type:'textarea' },
+      ]},
+    ]);
+
+    localStorage.setItem(SEED_KEY, '1');
+  },
+};
+
+/* ==========================================================================
+   CONSTANTS
+   ========================================================================== */
+const SEED_KEY             = 'iles_seeded_v2';
+const MAX_STUDY_YEAR       = 6;
+const MAX_WEEK_NUMBER      = 52;
+const MAX_WEEKLY_HOURS     = 80;
+const DEFAULT_WEEKLY_HOURS = 40;
+const DEFAULT_EVAL_SCORE   = 7;
+const TOAST_DURATION_MS    = 3500;
+
+/* ==========================================================================
+   UI STATE
+   ========================================================================== */
+const state = { role: 'student', userId: 'u1' };
+
+/* Helpers */
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function cap(s)         { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function today()        { return new Date().toISOString().slice(0,10); }
+function fmtDate(d)     { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function userName(id)   { const u = DB.find(KEYS.users, id);     return u ? u.name : 'Unknown'; }
+function companyName(id){ const c = DB.find(KEYS.companies, id); return c ? c.name : 'Unknown'; }
+
+/* ==========================================================================
+   NAVIGATION
+   ========================================================================== */
+function switchRole(role) {
+  state.role = role;
+  document.querySelectorAll('.role-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + role).classList.add('active');
+  populateUserSelector(role);
+  renderRole();
+}
+
+function switchUser(uid) {
+  state.userId = uid;
+  renderRole();
+}
+
+function populateUserSelector(role) {
+  const sel = document.getElementById('userSelector');
+  const wrap = document.getElementById('user-selector-wrap');
+  if (role === 'admin') { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  const users = DB.get(KEYS.users).filter(u => u.role === role);
+  sel.innerHTML = users.length
+    ? users.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('')
+    : '<option value="">No users</option>';
+  state.userId = users.length ? users[0].id : null;
+}
+
+function renderRole() {
+  if      (state.role === 'student')    renderStudent();
+  else if (state.role === 'academic')   renderAcademic();
+  else if (state.role === 'supervisor') renderSupervisor();
+  else if (state.role === 'admin')      renderAdmin();
+}
+
+function switchTab(role, tab) {
+  const sec = document.getElementById('section-' + role);
+  sec.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  sec.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById(role + '-' + tab);
+  if (panel) panel.classList.add('active');
+  const btn = Array.from(sec.querySelectorAll('.tab-btn'))
+    .find(b => (b.getAttribute('onclick') || '').includes("'" + tab + "'"));
+  if (btn) btn.classList.add('active');
+}
+
+/* ==========================================================================
+   RENDER — STUDENT
+   ========================================================================== */
+function renderStudent() {
+  const user = DB.find(KEYS.users, state.userId);
+  if (!user) return;
+  document.getElementById('student-heading').textContent = 'Welcome, ' + user.name;
+
+  /* --- Profile --- */
+  document.getElementById('student-profile-form').innerHTML = `
+    <form onsubmit="saveProfile(event)">
+      <div class="form-row">
+        <div class="form-group"><label>Full Name</label><input name="name" value="${esc(user.name)}" required></div>
+        <div class="form-group"><label>Student ID</label><input name="studentId" value="${esc(user.studentId||'')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Program</label><input name="program" value="${esc(user.program||'')}"></div>
+        <div class="form-group"><label>Year of Study</label><input name="year" type="number" min="1" max="${MAX_STUDY_YEAR}" value="${esc(user.year||1)}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input name="email" type="email" value="${esc(user.email||'')}"></div>
+        <div class="form-group"><label>Phone</label><input name="phone" value="${esc(user.phone||'')}"></div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success">💾 Save Profile</button>
+      </div>
+    </form>`;
+
+  /* --- Placements --- */
+  const placements = DB.get(KEYS.placements).filter(p => p.studentId === state.userId);
+  document.getElementById('student-placements-list').innerHTML = placements.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Company</th><th>Role</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${placements.map(p => `
+          <tr>
+            <td>${esc(companyName(p.companyId))}</td>
+            <td>${esc(p.role||'Intern')}</td>
+            <td>${esc(p.startDate)}</td>
+            <td>${esc(p.endDate)}</td>
+            <td><span class="badge badge-${p.status}">${cap(p.status)}</span></td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('placement','edit','${p.id}')">✏ Edit</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No internship applications yet. Click "+ New Application" to add one.</div>`;
+
+  /* --- Logs --- */
+  const logs = DB.get(KEYS.logs).filter(l => l.studentId === state.userId);
+  document.getElementById('student-logs-list').innerHTML = logs.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Week</th><th>Hours</th><th>Activities</th><th>Status</th><th>Academic Comment</th></tr></thead>
+        <tbody>${logs.map(l => `
+          <tr>
+            <td>Week ${l.weekNumber}</td>
+            <td>${l.hours||'—'}</td>
+            <td>${esc(l.activities).slice(0,60)}${l.activities.length>60?'…':''}</td>
+            <td>${l.isApproved ? '<span class="badge badge-approved">✅ Approved</span>' : '<span class="badge badge-pending">⏳ Pending</span>'}</td>
+            <td>${esc(l.academicComment||'—')}</td>
+          </tr>`).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No weekly logs submitted yet.</div>`;
+
+  /* --- Report --- */
+  const report = DB.get(KEYS.reports).find(r => r.studentId === state.userId) || {};
+  document.getElementById('student-report-form').innerHTML = `
+    <form onsubmit="saveReport(event)">
+      <div class="form-group"><label>Report Title</label><input name="title" value="${esc(report.title||'')}" placeholder="My Internship Final Report" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>Report Link / URL</label><input name="link" type="url" value="${esc(report.link||'')}" placeholder="https://drive.google.com/..."></div>
+        <div class="form-group"><label>Submission Date</label><input name="submittedAt" type="date" value="${esc(report.submittedAt||today())}"></div>
+      </div>
+      ${report.id ? `<p style="color:var(--btn-success-hover);font-weight:600;margin-top:10px">✅ Report submitted on ${fmtDate(report.submittedAt)}</p>` : ''}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success">💾 ${report.id ? 'Update' : 'Submit'} Report</button>
+      </div>
+    </form>`;
+}
+
+function saveProfile(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  DB.update(KEYS.users, state.userId, {
+    name: fd.get('name'), studentId: fd.get('studentId'),
+    program: fd.get('program'), year: fd.get('year'),
+    email: fd.get('email'), phone: fd.get('phone'),
+  });
+  toast('Profile saved!', 'success');
+  populateUserSelector('student');
+  document.getElementById('userSelector').value = state.userId;
+  renderStudent();
+}
+
+function saveReport(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const existing = DB.get(KEYS.reports).find(r => r.studentId === state.userId);
+  const data = { studentId: state.userId, title: fd.get('title'), link: fd.get('link'), submittedAt: fd.get('submittedAt') };
+  if (existing) DB.update(KEYS.reports, existing.id, data);
+  else           DB.insert(KEYS.reports, data);
+  toast('Report ' + (existing ? 'updated' : 'submitted') + '!', 'success');
+  renderStudent();
+}
+
+/* ==========================================================================
+   RENDER — ACADEMIC SUPERVISOR
+   ========================================================================== */
+function renderAcademic() {
+  const user = DB.find(KEYS.users, state.userId);
+  if (!user) return;
+  document.getElementById('academic-heading').textContent = 'Welcome, ' + user.name;
+
+  const placements = DB.get(KEYS.placements).filter(p => p.academicId === state.userId);
+  const pIds = placements.map(p => p.id);
+
+  /* --- Students --- */
+  document.getElementById('academic-students-list').innerHTML = placements.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Student</th><th>Company</th><th>Role</th><th>Period</th><th>Status</th></tr></thead>
+        <tbody>${placements.map(p => {
+          const s = DB.find(KEYS.users, p.studentId);
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>${esc(companyName(p.companyId))}</td>
+            <td>${esc(p.role||'Intern')}</td>
+            <td>${esc(p.startDate)} – ${esc(p.endDate)}</td>
+            <td><span class="badge badge-${p.status}">${cap(p.status)}</span></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No students assigned to you yet.</div>`;
+
+  /* --- Log review --- */
+  const logs = DB.get(KEYS.logs).filter(l => pIds.includes(l.placementId));
+  document.getElementById('academic-logs-list').innerHTML = logs.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Student</th><th>Week</th><th>Hours</th><th>Activities</th><th>Status</th><th>Comment</th><th>Actions</th></tr></thead>
+        <tbody>${logs.map(l => {
+          const s = DB.find(KEYS.users, l.studentId);
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>Week ${l.weekNumber}</td>
+            <td>${l.hours||'—'}</td>
+            <td>${esc(l.activities).slice(0,50)}${l.activities.length>50?'…':''}</td>
+            <td>${l.isApproved ? '<span class="badge badge-approved">✅ Approved</span>' : '<span class="badge badge-pending">⏳ Pending</span>'}</td>
+            <td>${esc(l.academicComment||'—')}</td>
+            <td><button class="btn btn-primary btn-sm" onclick="openLogReview('${l.id}','academic')">💬 Review</button></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No logs to review.</div>`;
+
+  /* --- Meeting notes --- */
+  const notes = DB.get(KEYS.notes).filter(n => n.authorId === state.userId);
+  document.getElementById('academic-notes-list').innerHTML = notes.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Date</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody>${notes.map(n => `
+          <tr>
+            <td style="white-space:nowrap">${esc(fmtDate(n.date))}</td>
+            <td>${esc(n.notes).slice(0,90)}${n.notes.length>90?'…':''}</td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('meeting','edit','${n.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="del(KEYS.notes,'${n.id}','academic')">🗑</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No meeting notes recorded.</div>`;
+
+  /* --- Academic evaluations --- */
+  const evals = DB.get(KEYS.acadEvals).filter(ev => ev.evaluatorId === state.userId);
+  document.getElementById('academic-evals-list').innerHTML = evals.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Student</th><th>Report</th><th>Logs</th><th>Outcomes</th><th>Presentation</th><th>Avg</th><th>Actions</th></tr></thead>
+        <tbody>${evals.map(ev => {
+          const pl = DB.find(KEYS.placements, ev.placementId);
+          const s  = pl ? DB.find(KEYS.users, pl.studentId) : null;
+          const avg = ((+ev.reportQuality + +ev.logCompleteness + +ev.outcomes + +ev.presentation) / 4).toFixed(1);
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>${ev.reportQuality}/10</td><td>${ev.logCompleteness}/10</td>
+            <td>${ev.outcomes}/10</td><td>${ev.presentation}/10</td>
+            <td><strong>${avg}</strong></td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('acad-eval','edit','${ev.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="del(KEYS.acadEvals,'${ev.id}','academic')">🗑</button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No evaluations submitted yet.</div>`;
+}
+
+/* ==========================================================================
+   RENDER — INTERNSHIP SUPERVISOR
+   ========================================================================== */
+function renderSupervisor() {
+  const user = DB.find(KEYS.users, state.userId);
+  if (!user) return;
+  document.getElementById('supervisor-heading').textContent = 'Welcome, ' + user.name;
+
+  const placements = DB.get(KEYS.placements).filter(p => p.supervisorId === state.userId);
+
+  /* --- Interns --- */
+  document.getElementById('supervisor-interns-list').innerHTML = placements.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Intern</th><th>Role</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
+        <tbody>${placements.map(p => {
+          const s = DB.find(KEYS.users, p.studentId);
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>${esc(p.role||'Intern')}</td>
+            <td>${esc(p.startDate)}</td><td>${esc(p.endDate)}</td>
+            <td><span class="badge badge-${p.status}">${cap(p.status)}</span></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No interns assigned to you yet.</div>`;
+
+  /* --- Attendance --- */
+  const att = DB.get(KEYS.attendance).filter(a => a.supervisorId === state.userId);
+  document.getElementById('supervisor-attendance-list').innerHTML = att.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Intern</th><th>Period</th><th>Present (hrs)</th><th>Absent (hrs)</th><th>Comments</th><th>Actions</th></tr></thead>
+        <tbody>${att.map(a => {
+          const s = DB.find(KEYS.users, a.studentId);
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>${esc(a.week||'—')}</td>
+            <td>${a.hoursPresent}</td><td>${a.hoursAbsent||0}</td>
+            <td>${esc(a.comments||'—')}</td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('attendance','edit','${a.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="del(KEYS.attendance,'${a.id}','supervisor')">🗑</button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No attendance records yet.</div>`;
+
+  /* --- Supervisor evaluations --- */
+  const evals = DB.get(KEYS.supReviews).filter(ev => ev.reviewerId === state.userId);
+  document.getElementById('supervisor-evals-list').innerHTML = evals.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Intern</th><th>Type</th><th>Punctuality</th><th>Technical</th><th>Comm.</th><th>Initiative</th><th>Avg</th><th>Actions</th></tr></thead>
+        <tbody>${evals.map(ev => {
+          const pl = DB.find(KEYS.placements, ev.placementId);
+          const s  = pl ? DB.find(KEYS.users, pl.studentId) : null;
+          const avg = ((+ev.punctuality + +ev.technical + +ev.communication + +ev.initiative) / 4).toFixed(1);
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>${cap(ev.reviewType||'midterm')}</td>
+            <td>${ev.punctuality}/10</td><td>${ev.technical}/10</td>
+            <td>${ev.communication}/10</td><td>${ev.initiative}/10</td>
+            <td><strong>${avg}</strong></td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('sup-eval','edit','${ev.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="del(KEYS.supReviews,'${ev.id}','supervisor')">🗑</button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No evaluations submitted yet.</div>`;
+}
+
+/* ==========================================================================
+   RENDER — ADMIN
+   ========================================================================== */
+function renderAdmin() {
+  const users      = DB.get(KEYS.users);
+  const placements = DB.get(KEYS.placements);
+  const companies  = DB.get(KEYS.companies);
+  const logs       = DB.get(KEYS.logs);
+
+  /* Stats */
+  document.getElementById('admin-stats-cards').innerHTML = [
+    { v: users.filter(u => u.role === 'student').length,     l: 'Students' },
+    { v: placements.filter(p => p.status === 'active').length, l: 'Active Placements' },
+    { v: logs.length,     l: 'Weekly Logs' },
+    { v: companies.length, l: 'Companies' },
+  ].map(s => `<div class="stat-card"><div class="stat-value">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
+
+  /* Users */
+  document.getElementById('admin-users-list').innerHTML = users.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Details</th><th>Actions</th></tr></thead>
+        <tbody>${users.map(u => {
+          const detail = u.role === 'student'    ? esc((u.program||'') + (u.studentId ? ' (' + u.studentId + ')' : ''))
+                       : u.role === 'supervisor' ? esc(u.company||u.designation||'')
+                       : u.role === 'academic'   ? esc(u.department||'')
+                       : 'System Admin';
+          return `<tr>
+            <td>${esc(u.name)}</td><td>${esc(u.email)}</td>
+            <td><span class="badge badge-${u.role}">${cap(u.role)}</span></td>
+            <td>${detail}</td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('user','edit','${u.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm"  onclick="deleteUser('${u.id}')">🗑 Delete</button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No users found.</div>`;
+
+  /* Companies */
+  document.getElementById('admin-companies-list').innerHTML = companies.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Name</th><th>Industry</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead>
+        <tbody>${companies.map(c => `
+          <tr>
+            <td>${esc(c.name)}</td><td>${esc(c.industry)}</td>
+            <td>${esc(c.email)}</td><td>${esc(c.phone)}</td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('company','edit','${c.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm"  onclick="del(KEYS.companies,'${c.id}','admin')">🗑</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No companies yet.</div>`;
+
+  /* Placements */
+  document.getElementById('admin-placements-list').innerHTML = placements.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Student</th><th>Company</th><th>Role</th><th>Sup.</th><th>Acad. Sup.</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${placements.map(p => `
+          <tr>
+            <td>${esc(userName(p.studentId))}</td>
+            <td>${esc(companyName(p.companyId))}</td>
+            <td>${esc(p.role||'Intern')}</td>
+            <td>${esc(userName(p.supervisorId))}</td>
+            <td>${esc(userName(p.academicId))}</td>
+            <td><span class="badge badge-${p.status}">${cap(p.status)}</span></td>
+            <td><div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('admin-placement','edit','${p.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm"  onclick="del(KEYS.placements,'${p.id}','admin')">🗑</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No placements yet.</div>`;
+
+  /* Templates */
+  const templates = DB.get(KEYS.templates);
+  document.getElementById('admin-templates-list').innerHTML = templates.length
+    ? templates.map(t => `
+        <div style="background:var(--bg);border-radius:10px;padding:16px 18px;margin-bottom:14px;border:1px solid var(--border)">
+          <div class="section-toolbar" style="margin-bottom:8px">
+            <strong>${esc(t.name)}</strong>
+            <div class="table-actions">
+              <button class="btn btn-warning btn-sm" onclick="openModal('template','edit','${t.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm"  onclick="del(KEYS.templates,'${t.id}','admin')">🗑 Delete</button>
+            </div>
+          </div>
+          <div style="font-size:.84rem;color:var(--text-muted)">
+            Fields: ${(t.fields||[]).map(f => `<span style="background:var(--tab-inactive-bg);padding:2px 8px;border-radius:10px;margin-right:4px">${esc(f.label)}</span>`).join('')}
+          </div>
+        </div>`).join('')
+    : `<div class="empty-state">No evaluation templates yet.</div>`;
+
+  /* Summary */
+  renderSummary();
+}
+
+function renderSummary() {
+  const placements  = DB.get(KEYS.placements);
+  const logs        = DB.get(KEYS.logs);
+  const supReviews  = DB.get(KEYS.supReviews);
+  const acadEvals   = DB.get(KEYS.acadEvals);
+
+  document.getElementById('admin-summary-table').innerHTML = placements.length
+    ? `<div class="table-wrapper"><table>
+        <thead><tr><th>Student</th><th>Company</th><th>Role</th><th>Status</th><th>Logs</th><th>Approved</th><th>Sup. Reviews</th><th>Acad. Evals</th></tr></thead>
+        <tbody>${placements.map(p => {
+          const s       = DB.find(KEYS.users, p.studentId);
+          const pLogs   = logs.filter(l => l.placementId === p.id);
+          const pApp    = pLogs.filter(l => l.isApproved).length;
+          const pSup    = supReviews.filter(r => r.placementId === p.id).length;
+          const pAcad   = acadEvals.filter(ev => ev.placementId === p.id).length;
+          return `<tr>
+            <td>${esc(s ? s.name : 'Unknown')}</td>
+            <td>${esc(companyName(p.companyId))}</td>
+            <td>${esc(p.role||'Intern')}</td>
+            <td><span class="badge badge-${p.status}">${cap(p.status)}</span></td>
+            <td>${pLogs.length}</td>
+            <td>${pApp} / ${pLogs.length}</td>
+            <td>${pSup}</td>
+            <td>${pAcad}</td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>`
+    : `<div class="empty-state">No placement data available.</div>`;
+}
+
+/* ==========================================================================
+   MODAL SYSTEM
+   ========================================================================== */
+let modalType = null, modalAction = null, modalId = null;
+
+const MODAL_TITLES = {
+  'placement':       { add:'New Internship Application', edit:'Edit Application' },
+  'log':             { add:'Submit Weekly Log',          edit:'Edit Log' },
+  'user':            { add:'Add New User',               edit:'Edit User' },
+  'company':         { add:'Add Company',                edit:'Edit Company' },
+  'admin-placement': { add:'Add Placement',              edit:'Edit Placement' },
+  'template':        { add:'New Evaluation Template',    edit:'Edit Template' },
+  'meeting':         { add:'Add Meeting Note',           edit:'Edit Note' },
+  'acad-eval':       { add:'New Academic Evaluation',    edit:'Edit Evaluation' },
+  'sup-eval':        { add:'New Intern Evaluation',      edit:'Edit Evaluation' },
+  'attendance':      { add:'Record Attendance',          edit:'Edit Attendance' },
+};
+
+function openModal(type, action, id) {
+  modalType = type; modalAction = action; modalId = id || null;
+  document.getElementById('modal-title').textContent = (MODAL_TITLES[type]||{})[action] || type;
+  document.getElementById('modal-body').innerHTML = buildForm(type, id);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  modalType = modalAction = modalId = null;
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+/* ---- Form builders ---- */
+function buildForm(type, id) {
+  if (type === 'placement')       return formPlacement(id);
+  if (type === 'log')             return formLog(id);
+  if (type === 'user')            return formUser(id);
+  if (type === 'company')         return formCompany(id);
+  if (type === 'admin-placement') return formAdminPlacement(id);
+  if (type === 'template')        return formTemplate(id);
+  if (type === 'meeting')         return formMeeting(id);
+  if (type === 'acad-eval')       return formAcadEval(id);
+  if (type === 'sup-eval')        return formSupEval(id);
+  if (type === 'attendance')      return formAttendance(id);
+  return '<p>Unknown form type.</p>';
+}
+
+function formPlacement(id) {
+  const p = id ? (DB.find(KEYS.placements, id) || {}) : {};
+  const companies = DB.get(KEYS.companies);
+  return `<form onsubmit="savePlacement(event)">
+    <div class="form-group"><label>Company</label>
+      <select name="companyId" required>
+        ${companies.map(c => `<option value="${c.id}" ${p.companyId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+        ${companies.length===0 ? '<option value="">No companies (ask admin)</option>' : ''}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Role / Position</label><input name="role" value="${esc(p.role||'Intern')}" required></div>
+      <div class="form-group"><label>Status</label>
+        <select name="status">
+          <option value="active"    ${(p.status||'active')==='active'    ?'selected':''}>Active</option>
+          <option value="completed" ${p.status==='completed'              ?'selected':''}>Completed</option>
+          <option value="suspended" ${p.status==='suspended'              ?'selected':''}>Suspended</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Start Date</label><input name="startDate" type="date" value="${esc(p.startDate||today())}" required></div>
+      <div class="form-group"><label>End Date</label><input name="endDate" type="date" value="${esc(p.endDate||'')}" required></div>
+    </div>
+    <div class="form-group"><label>Description</label><textarea name="description">${esc(p.description||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formLog(id) {
+  const l = id ? (DB.find(KEYS.logs, id) || {}) : {};
+  const placements = DB.get(KEYS.placements).filter(p => p.studentId === state.userId);
+  return `<form onsubmit="saveLog(event)">
+    <div class="form-group"><label>Placement</label>
+      <select name="placementId" required>
+        ${placements.map(p => `<option value="${p.id}" ${l.placementId===p.id?'selected':''}>${esc(companyName(p.companyId))} — ${esc(p.role||'Intern')}</option>`).join('')}
+        ${placements.length===0 ? '<option value="">No active placement</option>' : ''}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Week Number</label><input name="weekNumber" type="number" min="1" max="${MAX_WEEK_NUMBER}" value="${esc(String(l.weekNumber||1))}" required></div>
+      <div class="form-group"><label>Hours Worked</label><input name="hours" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(l.hours||DEFAULT_WEEKLY_HOURS))}" required></div>
+    </div>
+    <div class="form-group"><label>Activities</label><textarea name="activities" required>${esc(l.activities||'')}</textarea></div>
+    <div class="form-group"><label>Challenges</label><textarea name="challenges">${esc(l.challenges||'')}</textarea></div>
+    <div class="form-group"><label>Skills Gained</label><textarea name="skills">${esc(l.skills||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Submit Log</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formUser(id) {
+  const u = id ? (DB.find(KEYS.users, id) || {}) : {};
+  return `<form onsubmit="saveUser(event)">
+    <div class="form-row">
+      <div class="form-group"><label>Full Name</label><input name="name" value="${esc(u.name||'')}" required></div>
+      <div class="form-group"><label>Email</label><input name="email" type="email" value="${esc(u.email||'')}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Role</label>
+        <select name="role" onchange="updateRoleFields(this)" required>
+          <option value="student"    ${(u.role||'student')==='student'    ?'selected':''}>Student</option>
+          <option value="academic"   ${u.role==='academic'                ?'selected':''}>Academic Supervisor</option>
+          <option value="supervisor" ${u.role==='supervisor'              ?'selected':''}>Internship Supervisor</option>
+          <option value="admin"      ${u.role==='admin'                   ?'selected':''}>Administrator</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Phone</label><input name="phone" value="${esc(u.phone||'')}"></div>
+    </div>
+    <div id="role-fields">${roleFields(u)}</div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function roleFields(u) {
+  const r = u.role || 'student';
+  if (r === 'student') return `
+    <div class="form-row">
+      <div class="form-group"><label>Student ID</label><input name="studentId" value="${esc(u.studentId||'')}"></div>
+      <div class="form-group"><label>Year</label><input name="year" type="number" min="1" max="${MAX_STUDY_YEAR}" value="${esc(u.year||1)}"></div>
+    </div>
+    <div class="form-group"><label>Program</label><input name="program" value="${esc(u.program||'')}"></div>`;
+  if (r === 'academic') return `
+    <div class="form-row">
+      <div class="form-group"><label>Department</label><input name="department" value="${esc(u.department||'')}"></div>
+      <div class="form-group"><label>Staff ID</label><input name="staffId" value="${esc(u.staffId||'')}"></div>
+    </div>`;
+  if (r === 'supervisor') return `
+    <div class="form-row">
+      <div class="form-group"><label>Company</label><input name="company" value="${esc(u.company||'')}"></div>
+      <div class="form-group"><label>Designation</label><input name="designation" value="${esc(u.designation||'')}"></div>
+    </div>`;
+  return '';
+}
+function updateRoleFields(sel) {
+  document.getElementById('role-fields').innerHTML = roleFields({ role: sel.value });
+}
+
+function formCompany(id) {
+  const c = id ? (DB.find(KEYS.companies, id) || {}) : {};
+  return `<form onsubmit="saveCompany(event)">
+    <div class="form-row">
+      <div class="form-group"><label>Company Name</label><input name="name" value="${esc(c.name||'')}" required></div>
+      <div class="form-group"><label>Industry</label><input name="industry" value="${esc(c.industry||'')}" required></div>
+    </div>
+    <div class="form-group"><label>Address</label><textarea name="address">${esc(c.address||'')}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Contact Email</label><input name="email" type="email" value="${esc(c.email||'')}" required></div>
+      <div class="form-group"><label>Phone</label><input name="phone" value="${esc(c.phone||'')}"></div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formAdminPlacement(id) {
+  const p         = id ? (DB.find(KEYS.placements, id) || {}) : {};
+  const students  = DB.get(KEYS.users).filter(u => u.role === 'student');
+  const companies = DB.get(KEYS.companies);
+  const sups      = DB.get(KEYS.users).filter(u => u.role === 'supervisor');
+  const acads     = DB.get(KEYS.users).filter(u => u.role === 'academic');
+  return `<form onsubmit="saveAdminPlacement(event)">
+    <div class="form-row">
+      <div class="form-group"><label>Student</label>
+        <select name="studentId" required>
+          ${students.map(s => `<option value="${s.id}" ${p.studentId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Company</label>
+        <select name="companyId" required>
+          ${companies.map(c => `<option value="${c.id}" ${p.companyId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Internship Supervisor</label>
+        <select name="supervisorId">
+          <option value="">— None —</option>
+          ${sups.map(s => `<option value="${s.id}" ${p.supervisorId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Academic Supervisor</label>
+        <select name="academicId">
+          <option value="">— None —</option>
+          ${acads.map(a => `<option value="${a.id}" ${p.academicId===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Role / Position</label><input name="role" value="${esc(p.role||'Intern')}" required></div>
+    <div class="form-row">
+      <div class="form-group"><label>Start Date</label><input name="startDate" type="date" value="${esc(p.startDate||today())}" required></div>
+      <div class="form-group"><label>End Date</label><input name="endDate" type="date" value="${esc(p.endDate||'')}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Status</label>
+        <select name="status">
+          <option value="active"    ${(p.status||'active')==='active'    ?'selected':''}>Active</option>
+          <option value="completed" ${p.status==='completed'              ?'selected':''}>Completed</option>
+          <option value="suspended" ${p.status==='suspended'              ?'selected':''}>Suspended</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Description</label><textarea name="description">${esc(p.description||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formTemplate(id) {
+  const t = id ? (DB.find(KEYS.templates, id) || { fields: [] }) : { fields: [] };
+  return `<form onsubmit="saveTemplate(event)">
+    <div class="form-group"><label>Template Name</label><input name="name" value="${esc(t.name||'')}" required></div>
+    <div class="form-group">
+      <label>Fields (JSON array)</label>
+      <textarea name="fields" rows="12" class="json-editor" required>${esc(JSON.stringify(t.fields||[], null, 2))}</textarea>
+      <small style="color:var(--text-muted);font-size:.8rem">Array of <code>{name, label, type}</code> objects — type: "text" | "number" | "textarea"</small>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save Template</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formMeeting(id) {
+  const n = id ? (DB.find(KEYS.notes, id) || {}) : {};
+  const placements = DB.get(KEYS.placements).filter(p => p.academicId === state.userId);
+  return `<form onsubmit="saveMeeting(event)">
+    <div class="form-group"><label>Student / Placement</label>
+      <select name="placementId" required>
+        ${placements.map(p => { const s = DB.find(KEYS.users, p.studentId); return `<option value="${p.id}" ${n.placementId===p.id?'selected':''}>${esc(s ? s.name : 'Unknown')}</option>`; }).join('')}
+        ${placements.length===0 ? '<option value="">No assigned placements</option>' : ''}
+      </select>
+    </div>
+    <div class="form-group"><label>Date</label><input name="date" type="date" value="${esc(n.date||today())}" required></div>
+    <div class="form-group"><label>Notes</label><textarea name="notes" rows="6" required>${esc(n.notes||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save Note</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formAcadEval(id) {
+  const ev = id ? (DB.find(KEYS.acadEvals, id) || {}) : {};
+  const placements = DB.get(KEYS.placements).filter(p => p.academicId === state.userId);
+  return `<form onsubmit="saveAcadEval(event)">
+    <div class="form-group"><label>Student / Placement</label>
+      <select name="placementId" required>
+        ${placements.map(p => { const s = DB.find(KEYS.users, p.studentId); return `<option value="${p.id}" ${ev.placementId===p.id?'selected':''}>${esc(s ? s.name : 'Unknown')}</option>`; }).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Report Quality (1-10)</label><input name="reportQuality" type="number" min="1" max="10" value="${esc(String(ev.reportQuality||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Log Completeness (1-10)</label><input name="logCompleteness" type="number" min="1" max="10" value="${esc(String(ev.logCompleteness||DEFAULT_EVAL_SCORE))}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Learning Outcomes (1-10)</label><input name="outcomes" type="number" min="1" max="10" value="${esc(String(ev.outcomes||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Presentation (1-10)</label><input name="presentation" type="number" min="1" max="10" value="${esc(String(ev.presentation||DEFAULT_EVAL_SCORE))}" required></div>
+    </div>
+    <div class="form-group"><label>Comments</label><textarea name="comments">${esc(ev.comments||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Submit Evaluation</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formSupEval(id) {
+  const ev = id ? (DB.find(KEYS.supReviews, id) || {}) : {};
+  const placements = DB.get(KEYS.placements).filter(p => p.supervisorId === state.userId);
+  return `<form onsubmit="saveSupEval(event)">
+    <div class="form-group"><label>Intern / Placement</label>
+      <select name="placementId" required>
+        ${placements.map(p => { const s = DB.find(KEYS.users, p.studentId); return `<option value="${p.id}" ${ev.placementId===p.id?'selected':''}>${esc(s ? s.name : 'Unknown')}</option>`; }).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label>Evaluation Type</label>
+      <select name="reviewType" required>
+        <option value="midterm" ${(ev.reviewType||'midterm')==='midterm'?'selected':''}>Mid-Term</option>
+        <option value="final"   ${ev.reviewType==='final'               ?'selected':''}>Final</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Punctuality (1-10)</label><input name="punctuality" type="number" min="1" max="10" value="${esc(String(ev.punctuality||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Technical Skills (1-10)</label><input name="technical" type="number" min="1" max="10" value="${esc(String(ev.technical||DEFAULT_EVAL_SCORE))}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Communication (1-10)</label><input name="communication" type="number" min="1" max="10" value="${esc(String(ev.communication||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Initiative (1-10)</label><input name="initiative" type="number" min="1" max="10" value="${esc(String(ev.initiative||DEFAULT_EVAL_SCORE))}" required></div>
+    </div>
+    <div class="form-group"><label>Overall Comments</label><textarea name="comments">${esc(ev.comments||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Submit Evaluation</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+function formAttendance(id) {
+  const a = id ? (DB.find(KEYS.attendance, id) || {}) : {};
+  const placements = DB.get(KEYS.placements).filter(p => p.supervisorId === state.userId);
+  return `<form onsubmit="saveAttendance(event)">
+    <div class="form-group"><label>Intern / Placement</label>
+      <select name="placementId" required>
+        ${placements.map(p => { const s = DB.find(KEYS.users, p.studentId); return `<option value="${p.id}" ${a.placementId===p.id?'selected':''}>${esc(s ? s.name : 'Unknown')}</option>`; }).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Period / Week</label><input name="week" value="${esc(a.week||'Week 1')}" required></div>
+      <div class="form-group"><label>Date Recorded</label><input name="recordedAt" type="date" value="${esc(a.recordedAt||today())}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Hours Present</label><input name="hoursPresent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursPresent !== undefined ? a.hoursPresent : DEFAULT_WEEKLY_HOURS))}" required></div>
+      <div class="form-group"><label>Hours Absent</label><input name="hoursAbsent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursAbsent||0))}"></div>
+    </div>
+    <div class="form-group"><label>Comments</label><textarea name="comments">${esc(a.comments||'')}</textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">💾 Save Record</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </form>`;
+}
+
+/* ---- Save handlers ---- */
+function savePlacement(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    studentId: state.userId, companyId: fd.get('companyId'),
+    role: fd.get('role'), startDate: fd.get('startDate'),
+    endDate: fd.get('endDate'), status: fd.get('status'),
+    description: fd.get('description'),
+  };
+  if (!validate({ 'Company': data.companyId, 'Role': data.role, 'Start date': data.startDate, 'End date': data.endDate })) return;
+  modalId ? DB.update(KEYS.placements, modalId, data) : DB.insert(KEYS.placements, data);
+  closeModal(); toast('Application saved!', 'success'); renderStudent();
+}
+
+function saveLog(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    studentId: state.userId, placementId: fd.get('placementId'),
+    weekNumber: +fd.get('weekNumber'), hours: +fd.get('hours'),
+    activities: fd.get('activities'), challenges: fd.get('challenges'),
+    skills: fd.get('skills'), submittedAt: new Date().toISOString(),
+    isApproved: false, academicComment: '', supervisorComment: '',
+  };
+  if (!validate({ 'Placement': data.placementId, 'Activities': data.activities })) return;
+  DB.insert(KEYS.logs, data);
+  closeModal(); toast('Log submitted!', 'success'); renderStudent();
+}
+
+function saveUser(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const role = fd.get('role');
+  const data = { name: fd.get('name'), email: fd.get('email'), role, phone: fd.get('phone') };
+  if (role === 'student')    { data.studentId = fd.get('studentId'); data.program = fd.get('program'); data.year = fd.get('year'); }
+  if (role === 'academic')   { data.department = fd.get('department'); data.staffId = fd.get('staffId'); }
+  if (role === 'supervisor') { data.company = fd.get('company'); data.designation = fd.get('designation'); }
+  if (!validate({ 'Name': data.name, 'Email': data.email })) return;
+  modalId ? DB.update(KEYS.users, modalId, data) : DB.insert(KEYS.users, data);
+  closeModal(); toast('User saved!', 'success'); renderAdmin();
+}
+
+function saveCompany(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = { name: fd.get('name'), industry: fd.get('industry'), address: fd.get('address'), email: fd.get('email'), phone: fd.get('phone') };
+  if (!validate({ 'Name': data.name, 'Industry': data.industry, 'Email': data.email })) return;
+  modalId ? DB.update(KEYS.companies, modalId, data) : DB.insert(KEYS.companies, data);
+  closeModal(); toast('Company saved!', 'success'); renderAdmin();
+}
+
+function saveAdminPlacement(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    studentId: fd.get('studentId'), companyId: fd.get('companyId'),
+    supervisorId: fd.get('supervisorId'), academicId: fd.get('academicId'),
+    role: fd.get('role'), startDate: fd.get('startDate'),
+    endDate: fd.get('endDate'), status: fd.get('status'),
+    description: fd.get('description'),
+  };
+  if (!validate({ 'Student': data.studentId, 'Company': data.companyId, 'Role': data.role })) return;
+  modalId ? DB.update(KEYS.placements, modalId, data) : DB.insert(KEYS.placements, data);
+  closeModal(); toast('Placement saved!', 'success'); renderAdmin();
+}
+
+function saveTemplate(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  let fields;
+  try {
+    fields = JSON.parse(fd.get('fields'));
+    if (!Array.isArray(fields)) throw new Error('Must be a JSON array');
+  } catch (err) {
+    toast('Invalid JSON: ' + err.message, 'error'); return;
+  }
+  const data = { name: fd.get('name'), fields };
+  if (!validate({ 'Name': data.name })) return;
+  modalId ? DB.update(KEYS.templates, modalId, data) : DB.insert(KEYS.templates, data);
+  closeModal(); toast('Template saved!', 'success'); renderAdmin();
+}
+
+function saveMeeting(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = { placementId: fd.get('placementId'), authorId: state.userId, date: fd.get('date'), notes: fd.get('notes') };
+  if (!validate({ 'Placement': data.placementId, 'Notes': data.notes })) return;
+  modalId ? DB.update(KEYS.notes, modalId, data) : DB.insert(KEYS.notes, data);
+  closeModal(); toast('Note saved!', 'success'); renderAcademic();
+}
+
+function saveAcadEval(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    placementId: fd.get('placementId'), evaluatorId: state.userId,
+    reportQuality: +fd.get('reportQuality'), logCompleteness: +fd.get('logCompleteness'),
+    outcomes: +fd.get('outcomes'), presentation: +fd.get('presentation'),
+    comments: fd.get('comments'), evaluatedAt: new Date().toISOString(),
+  };
+  if (!validate({ 'Placement': data.placementId })) return;
+  modalId ? DB.update(KEYS.acadEvals, modalId, data) : DB.insert(KEYS.acadEvals, data);
+  closeModal(); toast('Evaluation saved!', 'success'); renderAcademic();
+}
+
+function saveSupEval(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    placementId: fd.get('placementId'), reviewerId: state.userId,
+    reviewType: fd.get('reviewType'),
+    punctuality: +fd.get('punctuality'), technical: +fd.get('technical'),
+    communication: +fd.get('communication'), initiative: +fd.get('initiative'),
+    comments: fd.get('comments'), reviewedAt: new Date().toISOString(),
+  };
+  if (!validate({ 'Placement': data.placementId })) return;
+  modalId ? DB.update(KEYS.supReviews, modalId, data) : DB.insert(KEYS.supReviews, data);
+  closeModal(); toast('Evaluation saved!', 'success'); renderSupervisor();
+}
+
+function saveAttendance(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const pl = DB.find(KEYS.placements, fd.get('placementId'));
+  const data = {
+    placementId: fd.get('placementId'), supervisorId: state.userId,
+    studentId: pl ? pl.studentId : '',
+    week: fd.get('week'), hoursPresent: +fd.get('hoursPresent'),
+    hoursAbsent: +fd.get('hoursAbsent'), comments: fd.get('comments'),
+    recordedAt: fd.get('recordedAt'),
+  };
+  if (!validate({ 'Placement': data.placementId, 'Period': data.week })) return;
+  modalId ? DB.update(KEYS.attendance, modalId, data) : DB.insert(KEYS.attendance, data);
+  closeModal(); toast('Attendance recorded!', 'success'); renderSupervisor();
+}
+
+/* ---- Log review modal ---- */
+function openLogReview(logId, role) {
+  const log = DB.find(KEYS.logs, logId);
+  if (!log) return;
+  const s = DB.find(KEYS.users, log.studentId);
+  document.getElementById('modal-title').textContent = 'Review Log — Week ' + log.weekNumber;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="info-pair"><span class="label">Student:</span>${esc(s ? s.name : 'Unknown')}</div>
+    <div class="info-pair"><span class="label">Week:</span>Week ${log.weekNumber} &nbsp;|&nbsp; ${log.hours} hrs</div>
+    <p style="margin:10px 0 4px;font-weight:600;font-size:.85rem;color:var(--text-muted);text-transform:uppercase">Activities</p>
+    <p style="background:var(--bg);padding:12px;border-radius:8px;font-size:.9rem;margin-bottom:10px">${esc(log.activities)}</p>
+    ${log.challenges ? `<p style="margin:10px 0 4px;font-weight:600;font-size:.85rem;color:var(--text-muted);text-transform:uppercase">Challenges</p>
+    <p style="background:var(--bg);padding:12px;border-radius:8px;font-size:.9rem;margin-bottom:10px">${esc(log.challenges)}</p>` : ''}
+    ${log.skills ? `<div class="info-pair"><span class="label">Skills:</span>${esc(log.skills)}</div>` : ''}
+    <div class="divider"></div>
+    <form onsubmit="submitReview(event,'${logId}','${role}')">
+      <div class="form-group">
+        <label>Your Comment</label>
+        <textarea name="comment" rows="3" placeholder="Add feedback...">${esc(role === 'academic' ? (log.academicComment||'') : (log.supervisorComment||''))}</textarea>
+      </div>
+      ${role === 'academic' ? `
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:.9rem;font-weight:600">
+        <input type="checkbox" name="approve" style="width:auto;margin:0" ${log.isApproved?'checked':''}>
+        Mark as Approved
+      </label>` : ''}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success">💾 Save Review</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function submitReview(e, logId, role) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const changes = role === 'academic'
+    ? { academicComment: fd.get('comment'), isApproved: fd.get('approve') === 'on' }
+    : { supervisorComment: fd.get('comment') };
+  DB.update(KEYS.logs, logId, changes);
+  closeModal(); toast('Review saved!', 'success');
+  if (role === 'academic') renderAcademic(); else renderSupervisor();
+}
+
+/* ---- Delete helpers ---- */
+function deleteUser(id) {
+  if (!confirm('Delete this user? This cannot be undone.')) return;
+  DB.remove(KEYS.users, id);
+  toast('User deleted.', 'info'); renderAdmin();
+}
+
+function del(key, id, role) {
+  if (!confirm('Delete this record?')) return;
+  DB.remove(key, id);
+  toast('Deleted.', 'info');
+  if      (role === 'admin')      renderAdmin();
+  else if (role === 'academic')   renderAcademic();
+  else if (role === 'supervisor') renderSupervisor();
+}
+
+/* ==========================================================================
+   VALIDATION HELPER
+   ========================================================================== */
+function validate(fields) {
+  const missing = Object.entries(fields).filter(([, v]) => !v || !String(v).trim()).map(([k]) => k);
+  if (missing.length) { toast('Required: ' + missing.join(', '), 'error'); return false; }
+  return true;
+}
+
+/* ==========================================================================
+   EXPORT CSV
+   ========================================================================== */
+function exportCSV() {
+  const placements = DB.get(KEYS.placements);
+  const logs       = DB.get(KEYS.logs);
+  const supR       = DB.get(KEYS.supReviews);
+  const acadE      = DB.get(KEYS.acadEvals);
+
+  const rows = [['Student','Company','Role','Status','Start','End','Logs','ApprovedLogs','SupReviews','AcadEvals']];
+  placements.forEach(p => {
+    const s    = DB.find(KEYS.users, p.studentId);
+    const pL   = logs.filter(l => l.placementId === p.id);
+    const pApp = pL.filter(l => l.isApproved).length;
+    rows.push([
+      s ? s.name : 'Unknown', companyName(p.companyId), p.role||'Intern',
+      p.status, p.startDate, p.endDate,
+      pL.length, pApp,
+      supR.filter(r => r.placementId === p.id).length,
+      acadE.filter(ev => ev.placementId === p.id).length,
+    ]);
+  });
+
+  const csv  = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'iles-summary.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exported!', 'success');
+}
+
+/* ==========================================================================
+   TOAST
+   ========================================================================== */
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = { success:'✅', error:'❌', info:'ℹ️' }[type] + ' ' + msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), TOAST_DURATION_MS);
+}
+
+/* ==========================================================================
+   INIT
+   ========================================================================== */
+DB.seed();
+populateUserSelector('student');
+renderStudent();
+</script>
+</body>
+</html>
