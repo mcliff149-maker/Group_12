@@ -9,15 +9,63 @@ A browser-based internship management dashboard with a signup/login flow.
 ```
 Group_12/
 ├── frontend/
-│   ├── login.html      ← Sign-in page (start here)
-│   ├── signup.html     ← New-account registration
-│   └── dashboard.html  ← Main application (requires login)
-└── backend/            ← Django backend (optional – see below)
+│   ├── login.html          ← Original sign-in page (plain HTML)
+│   ├── signup.html         ← Original new-account registration
+│   ├── dashboard.html      ← Original application dashboard (plain HTML)
+│   └── react-app/          ← React UI prototype (Vite + React Router)
+│       ├── src/
+│       │   ├── pages/      ← LoginPage, SignupPage, four dashboards
+│       │   ├── components/ ← NavBar, ProtectedRoute
+│       │   └── styles/     ← Pastel CSS design system
+│       └── package.json
+└── backend/                ← Django backend (optional – see below)
 ```
 
 ---
 
-## Running the Frontend
+## React UI Prototype (`frontend/react-app/`)
+
+A pastel-themed React application built with Vite and React Router v6. All data is
+mocked in component state — **no backend required**.
+
+### Features
+
+| Page | Description |
+|------|-------------|
+| Login | Email/username + password + role selector with validation. Demo accounts listed in-app. |
+| Signup | Full name, email, password (× 2), role; client-side validation. |
+| Student Dashboard | Checklist of tasks (mark complete, add new) + internship applications table. |
+| Academic Supervisor Dashboard | Student overview table with Approve / Reject / Reset controls. |
+| Internship Supervisor Dashboard | Intern roster cards with per-intern feedback textarea + save. |
+| System Admin Dashboard | User management table (toggle active/disabled) + add-user form with filters. |
+
+### Running the React app
+
+```bash
+cd frontend/react-app
+npm install
+npm run dev        # development server at http://localhost:5173
+```
+
+**Demo credentials** (password is always `pass123`):
+
+| Username | Role |
+|---|---|
+| `student1` | 🎓 Student |
+| `academic1` | 📚 Academic Supervisor |
+| `supervisor1` | 🏢 Internship Supervisor |
+| `admin1` | ⚙️ Administrator |
+
+### Building for production
+
+```bash
+cd frontend/react-app
+npm run build      # output in dist/
+```
+
+---
+
+
 
 No server or build step is needed.
 
