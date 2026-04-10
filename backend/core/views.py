@@ -1,7 +1,11 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
-from .models import Student, InternshipPlacement, WeeklyLog, SupervisorReview, AcademicEvaluation, WeightedScore
+from .models import Student, InternshipPlacement, WeeklyLog, SupervisorReview, AcademicEvaluation, WeightedScore, DashboardConfig, CustomUser
 from .forms import WeeklyLogForm, SupervisorReviewForm, AcademicEvaluationForm
 
 
@@ -146,3 +150,76 @@ def compute_score(request, placement_id):
     weighted_score, _ = WeightedScore.objects.get_or_create(placement=placement)
     weighted_score.compute()
     return redirect('admin_dashboard')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dashboard Configuration API
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+@require_http_methods(['GET'])
+def api_dashboard_config(request):
+    """GET current user's dashboard config."""
+    cfg, _ = DashboardConfig.objects.get_or_create(user=request.user)
+    return JsonResponse({'config': cfg.config})
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['PUT'])
+def api_dashboard_config_put(request):
+    """PUT (replace) current user's dashboard config."""
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    cfg, _ = DashboardConfig.objects.get_or_create(user=request.user)
+    cfg.config = body.get('config', {})
+    cfg.save()
+    return JsonResponse({'status': 'saved'})
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_admin_dashboard_config(request, user_id):
+    """Admin GET: retrieve a specific user's dashboard config."""
+    if request.user.role != 'admin':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    target = get_object_or_404(CustomUser, id=user_id)
+    cfg, _ = DashboardConfig.objects.get_or_create(user=target)
+    return JsonResponse({
+        'user_id': target.id,
+        'username': target.username,
+        'role': target.role,
+        'config': cfg.config,
+    })
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['PUT'])
+def api_admin_dashboard_config_put(request, user_id):
+    """Admin PUT: overwrite a specific user's dashboard config."""
+    if request.user.role != 'admin':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    target = get_object_or_404(CustomUser, id=user_id)
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    cfg, _ = DashboardConfig.objects.get_or_create(user=target)
+    cfg.config = body.get('config', {})
+    cfg.save()
+    return JsonResponse({'status': 'saved', 'user_id': target.id})
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['DELETE'])
+def api_admin_dashboard_config_delete(request, user_id):
+    """Admin DELETE: reset a specific user's dashboard config to empty (default)."""
+    if request.user.role != 'admin':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    target = get_object_or_404(CustomUser, id=user_id)
+    DashboardConfig.objects.filter(user=target).update(config={})
+    return JsonResponse({'status': 'reset', 'user_id': target.id})

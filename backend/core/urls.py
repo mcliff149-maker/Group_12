@@ -12,4 +12,10 @@ urlpatterns = [
     path('review/supervisor/<int:placement_id>/', views.submit_supervisor_review, name='supervisor_review'),
     path('evaluation/<int:placement_id>/', views.submit_academic_evaluation, name='academic_evaluation'),
     path('score/compute/<int:placement_id>/', views.compute_score, name='compute_score'),
+    # Dashboard config API
+    path('api/dashboard-config/', views.api_dashboard_config, name='api_dashboard_config'),
+    path('api/dashboard-config/save/', views.api_dashboard_config_put, name='api_dashboard_config_put'),
+    path('api/admin/dashboard-config/<int:user_id>/', views.api_admin_dashboard_config, name='api_admin_dashboard_config'),
+    path('api/admin/dashboard-config/<int:user_id>/save/', views.api_admin_dashboard_config_put, name='api_admin_dashboard_config_put'),
+    path('api/admin/dashboard-config/<int:user_id>/reset/', views.api_admin_dashboard_config_delete, name='api_admin_dashboard_config_delete'),
 ]

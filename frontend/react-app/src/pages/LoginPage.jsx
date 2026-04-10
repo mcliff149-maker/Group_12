@@ -7,9 +7,11 @@ import { useNavigate, Link } from 'react-router-dom';
 ------------------------------------------------------------------ */
 const MOCK_USERS = [
   { username: 'student1',    password: 'pass123', role: 'student',    name: 'Alice Johnson' },
+  { username: 'student2',    password: 'pass123', role: 'student',    name: 'Bob Martinez' },
   { username: 'academic1',   password: 'pass123', role: 'academic',   name: 'Dr. Bernard Smith' },
   { username: 'supervisor1', password: 'pass123', role: 'supervisor', name: 'Carol White' },
   { username: 'admin1',      password: 'pass123', role: 'admin',      name: 'Dave Admin' },
+  { username: 'admin2',      password: 'pass123', role: 'admin',      name: 'Eve Admin' },
 ];
 
 const ROLE_ROUTES = {
@@ -57,7 +59,7 @@ export default function LoginPage() {
       return;
     }
 
-    sessionStorage.setItem('iles_user', JSON.stringify({ name: user.name, role: user.role }));
+    sessionStorage.setItem('iles_user', JSON.stringify({ username: user.username, name: user.name, role: user.role }));
     navigate(ROLE_ROUTES[user.role]);
   }
 
