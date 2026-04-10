@@ -15,6 +15,16 @@ class CustomUser(AbstractUser):
         return f'{self.username} ({self.role})'
 
 
+class DashboardConfig(models.Model):
+    """Stores per-user dashboard widget layout as JSON."""
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='dashboard_config')
+    config = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'DashboardConfig for {self.user.username}'
+
+
 class Company(models.Model):
     name = models.CharField(max_length=200)
     address = models.TextField()
