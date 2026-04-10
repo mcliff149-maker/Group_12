@@ -606,6 +606,7 @@ const SEED_KEY             = 'iles_seeded_v2';
 const MAX_STUDY_YEAR       = 6;
 const MAX_WEEK_NUMBER      = 52;
 const MAX_WEEKLY_HOURS     = 80;
+const DEFAULT_WEEKLY_HOURS = 40;
 const DEFAULT_EVAL_SCORE   = 7;
 const TOAST_DURATION_MS    = 3500;
 
@@ -692,7 +693,7 @@ function renderStudent() {
       </div>
       <div class="form-row">
         <div class="form-group"><label>Program</label><input name="program" value="${esc(user.program||'')}"></div>
-        <div class="form-group"><label>Year of Study</label><input name="year" type="number" min="1" max="${MAX_STUDY_YEAR}" value="${esc(user.year||'')}"></div>
+        <div class="form-group"><label>Year of Study</label><input name="year" type="number" min="1" max="${MAX_STUDY_YEAR}" value="${esc(user.year||1)}"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Email</label><input name="email" type="email" value="${esc(user.email||'')}"></div>
@@ -1070,7 +1071,7 @@ function renderSummary() {
 /* ==========================================================================
    MODAL SYSTEM
    ========================================================================== */
-let _mType = null, _mAction = null, _mId = null;
+let modalType = null, modalAction = null, modalId = null;
 
 const MODAL_TITLES = {
   'placement':       { add:'New Internship Application', edit:'Edit Application' },
@@ -1086,14 +1087,14 @@ const MODAL_TITLES = {
 };
 
 function openModal(type, action, id) {
-  _mType = type; _mAction = action; _mId = id || null;
+  modalType = type; modalAction = action; modalId = id || null;
   document.getElementById('modal-title').textContent = (MODAL_TITLES[type]||{})[action] || type;
   document.getElementById('modal-body').innerHTML = buildForm(type, id);
   document.getElementById('modal-overlay').classList.add('open');
 }
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
-  _mType = _mAction = _mId = null;
+  modalType = modalAction = modalId = null;
 }
 function overlayClick(e) {
   if (e.target === document.getElementById('modal-overlay')) closeModal();
@@ -1158,7 +1159,7 @@ function formLog(id) {
     </div>
     <div class="form-row">
       <div class="form-group"><label>Week Number</label><input name="weekNumber" type="number" min="1" max="${MAX_WEEK_NUMBER}" value="${esc(String(l.weekNumber||1))}" required></div>
-      <div class="form-group"><label>Hours Worked</label><input name="hours" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(l.hours||40))}" required></div>
+      <div class="form-group"><label>Hours Worked</label><input name="hours" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(l.hours||DEFAULT_WEEKLY_HOURS))}" required></div>
     </div>
     <div class="form-group"><label>Activities</label><textarea name="activities" required>${esc(l.activities||'')}</textarea></div>
     <div class="form-group"><label>Challenges</label><textarea name="challenges">${esc(l.challenges||'')}</textarea></div>
@@ -1399,7 +1400,7 @@ function formAttendance(id) {
       <div class="form-group"><label>Date Recorded</label><input name="recordedAt" type="date" value="${esc(a.recordedAt||today())}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Hours Present</label><input name="hoursPresent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursPresent !== undefined ? a.hoursPresent : 40))}" required></div>
+      <div class="form-group"><label>Hours Present</label><input name="hoursPresent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursPresent !== undefined ? a.hoursPresent : DEFAULT_WEEKLY_HOURS))}" required></div>
       <div class="form-group"><label>Hours Absent</label><input name="hoursAbsent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursAbsent||0))}"></div>
     </div>
     <div class="form-group"><label>Comments</label><textarea name="comments">${esc(a.comments||'')}</textarea></div>
@@ -1421,7 +1422,7 @@ function savePlacement(e) {
     description: fd.get('description'),
   };
   if (!validate({ 'Company': data.companyId, 'Role': data.role, 'Start date': data.startDate, 'End date': data.endDate })) return;
-  _mId ? DB.update(KEYS.placements, _mId, data) : DB.insert(KEYS.placements, data);
+  modalId ? DB.update(KEYS.placements, modalId, data) : DB.insert(KEYS.placements, data);
   closeModal(); toast('Application saved!', 'success'); renderStudent();
 }
 
@@ -1449,7 +1450,7 @@ function saveUser(e) {
   if (role === 'academic')   { data.department = fd.get('department'); data.staffId = fd.get('staffId'); }
   if (role === 'supervisor') { data.company = fd.get('company'); data.designation = fd.get('designation'); }
   if (!validate({ 'Name': data.name, 'Email': data.email })) return;
-  _mId ? DB.update(KEYS.users, _mId, data) : DB.insert(KEYS.users, data);
+  modalId ? DB.update(KEYS.users, modalId, data) : DB.insert(KEYS.users, data);
   closeModal(); toast('User saved!', 'success'); renderAdmin();
 }
 
@@ -1458,7 +1459,7 @@ function saveCompany(e) {
   const fd = new FormData(e.target);
   const data = { name: fd.get('name'), industry: fd.get('industry'), address: fd.get('address'), email: fd.get('email'), phone: fd.get('phone') };
   if (!validate({ 'Name': data.name, 'Industry': data.industry, 'Email': data.email })) return;
-  _mId ? DB.update(KEYS.companies, _mId, data) : DB.insert(KEYS.companies, data);
+  modalId ? DB.update(KEYS.companies, modalId, data) : DB.insert(KEYS.companies, data);
   closeModal(); toast('Company saved!', 'success'); renderAdmin();
 }
 
@@ -1473,7 +1474,7 @@ function saveAdminPlacement(e) {
     description: fd.get('description'),
   };
   if (!validate({ 'Student': data.studentId, 'Company': data.companyId, 'Role': data.role })) return;
-  _mId ? DB.update(KEYS.placements, _mId, data) : DB.insert(KEYS.placements, data);
+  modalId ? DB.update(KEYS.placements, modalId, data) : DB.insert(KEYS.placements, data);
   closeModal(); toast('Placement saved!', 'success'); renderAdmin();
 }
 
@@ -1489,7 +1490,7 @@ function saveTemplate(e) {
   }
   const data = { name: fd.get('name'), fields };
   if (!validate({ 'Name': data.name })) return;
-  _mId ? DB.update(KEYS.templates, _mId, data) : DB.insert(KEYS.templates, data);
+  modalId ? DB.update(KEYS.templates, modalId, data) : DB.insert(KEYS.templates, data);
   closeModal(); toast('Template saved!', 'success'); renderAdmin();
 }
 
@@ -1498,7 +1499,7 @@ function saveMeeting(e) {
   const fd = new FormData(e.target);
   const data = { placementId: fd.get('placementId'), authorId: state.userId, date: fd.get('date'), notes: fd.get('notes') };
   if (!validate({ 'Placement': data.placementId, 'Notes': data.notes })) return;
-  _mId ? DB.update(KEYS.notes, _mId, data) : DB.insert(KEYS.notes, data);
+  modalId ? DB.update(KEYS.notes, modalId, data) : DB.insert(KEYS.notes, data);
   closeModal(); toast('Note saved!', 'success'); renderAcademic();
 }
 
@@ -1512,7 +1513,7 @@ function saveAcadEval(e) {
     comments: fd.get('comments'), evaluatedAt: new Date().toISOString(),
   };
   if (!validate({ 'Placement': data.placementId })) return;
-  _mId ? DB.update(KEYS.acadEvals, _mId, data) : DB.insert(KEYS.acadEvals, data);
+  modalId ? DB.update(KEYS.acadEvals, modalId, data) : DB.insert(KEYS.acadEvals, data);
   closeModal(); toast('Evaluation saved!', 'success'); renderAcademic();
 }
 
@@ -1527,7 +1528,7 @@ function saveSupEval(e) {
     comments: fd.get('comments'), reviewedAt: new Date().toISOString(),
   };
   if (!validate({ 'Placement': data.placementId })) return;
-  _mId ? DB.update(KEYS.supReviews, _mId, data) : DB.insert(KEYS.supReviews, data);
+  modalId ? DB.update(KEYS.supReviews, modalId, data) : DB.insert(KEYS.supReviews, data);
   closeModal(); toast('Evaluation saved!', 'success'); renderSupervisor();
 }
 
@@ -1543,7 +1544,7 @@ function saveAttendance(e) {
     recordedAt: fd.get('recordedAt'),
   };
   if (!validate({ 'Placement': data.placementId, 'Period': data.week })) return;
-  _mId ? DB.update(KEYS.attendance, _mId, data) : DB.insert(KEYS.attendance, data);
+  modalId ? DB.update(KEYS.attendance, modalId, data) : DB.insert(KEYS.attendance, data);
   closeModal(); toast('Attendance recorded!', 'success'); renderSupervisor();
 }
 
