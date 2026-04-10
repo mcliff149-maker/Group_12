@@ -534,7 +534,7 @@ const DB = {
   },
 
   seed() {
-    if (localStorage.getItem('iles_seeded_v2')) return;
+    if (localStorage.getItem(SEED_KEY)) return;
 
     DB.save(KEYS.users, [
       { id:'u1', name:'Alice Mwangi',  email:'alice@example.com',  role:'student',    studentId:'ST2024001', program:'Computer Science',      phone:'+254 700 000 001', year:'3',  createdAt:'2024-01-01T00:00:00Z' },
@@ -595,9 +595,19 @@ const DB = {
       ]},
     ]);
 
-    localStorage.setItem('iles_seeded_v2', '1');
+    localStorage.setItem(SEED_KEY, '1');
   },
 };
+
+/* ==========================================================================
+   CONSTANTS
+   ========================================================================== */
+const SEED_KEY             = 'iles_seeded_v2';
+const MAX_STUDY_YEAR       = 6;
+const MAX_WEEK_NUMBER      = 52;
+const MAX_WEEKLY_HOURS     = 80;
+const DEFAULT_EVAL_SCORE   = 7;
+const TOAST_DURATION_MS    = 3500;
 
 /* ==========================================================================
    UI STATE
@@ -606,7 +616,12 @@ const state = { role: 'student', userId: 'u1' };
 
 /* Helpers */
 function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 function cap(s)         { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 function today()        { return new Date().toISOString().slice(0,10); }
@@ -677,7 +692,7 @@ function renderStudent() {
       </div>
       <div class="form-row">
         <div class="form-group"><label>Program</label><input name="program" value="${esc(user.program||'')}"></div>
-        <div class="form-group"><label>Year of Study</label><input name="year" type="number" min="1" max="6" value="${esc(user.year||'')}"></div>
+        <div class="form-group"><label>Year of Study</label><input name="year" type="number" min="1" max="${MAX_STUDY_YEAR}" value="${esc(user.year||'')}"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Email</label><input name="email" type="email" value="${esc(user.email||'')}"></div>
@@ -1142,8 +1157,8 @@ function formLog(id) {
       </select>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Week Number</label><input name="weekNumber" type="number" min="1" max="52" value="${esc(String(l.weekNumber||1))}" required></div>
-      <div class="form-group"><label>Hours Worked</label><input name="hours" type="number" min="0" max="80" value="${esc(String(l.hours||40))}" required></div>
+      <div class="form-group"><label>Week Number</label><input name="weekNumber" type="number" min="1" max="${MAX_WEEK_NUMBER}" value="${esc(String(l.weekNumber||1))}" required></div>
+      <div class="form-group"><label>Hours Worked</label><input name="hours" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(l.hours||40))}" required></div>
     </div>
     <div class="form-group"><label>Activities</label><textarea name="activities" required>${esc(l.activities||'')}</textarea></div>
     <div class="form-group"><label>Challenges</label><textarea name="challenges">${esc(l.challenges||'')}</textarea></div>
@@ -1186,7 +1201,7 @@ function roleFields(u) {
   if (r === 'student') return `
     <div class="form-row">
       <div class="form-group"><label>Student ID</label><input name="studentId" value="${esc(u.studentId||'')}"></div>
-      <div class="form-group"><label>Year</label><input name="year" type="number" min="1" max="6" value="${esc(u.year||1)}"></div>
+      <div class="form-group"><label>Year</label><input name="year" type="number" min="1" max="${MAX_STUDY_YEAR}" value="${esc(u.year||1)}"></div>
     </div>
     <div class="form-group"><label>Program</label><input name="program" value="${esc(u.program||'')}"></div>`;
   if (r === 'academic') return `
@@ -1324,12 +1339,12 @@ function formAcadEval(id) {
       </select>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Report Quality (1-10)</label><input name="reportQuality" type="number" min="1" max="10" value="${esc(String(ev.reportQuality||7))}" required></div>
-      <div class="form-group"><label>Log Completeness (1-10)</label><input name="logCompleteness" type="number" min="1" max="10" value="${esc(String(ev.logCompleteness||7))}" required></div>
+      <div class="form-group"><label>Report Quality (1-10)</label><input name="reportQuality" type="number" min="1" max="10" value="${esc(String(ev.reportQuality||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Log Completeness (1-10)</label><input name="logCompleteness" type="number" min="1" max="10" value="${esc(String(ev.logCompleteness||DEFAULT_EVAL_SCORE))}" required></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Learning Outcomes (1-10)</label><input name="outcomes" type="number" min="1" max="10" value="${esc(String(ev.outcomes||7))}" required></div>
-      <div class="form-group"><label>Presentation (1-10)</label><input name="presentation" type="number" min="1" max="10" value="${esc(String(ev.presentation||7))}" required></div>
+      <div class="form-group"><label>Learning Outcomes (1-10)</label><input name="outcomes" type="number" min="1" max="10" value="${esc(String(ev.outcomes||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Presentation (1-10)</label><input name="presentation" type="number" min="1" max="10" value="${esc(String(ev.presentation||DEFAULT_EVAL_SCORE))}" required></div>
     </div>
     <div class="form-group"><label>Comments</label><textarea name="comments">${esc(ev.comments||'')}</textarea></div>
     <div class="form-actions">
@@ -1355,12 +1370,12 @@ function formSupEval(id) {
       </select>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Punctuality (1-10)</label><input name="punctuality" type="number" min="1" max="10" value="${esc(String(ev.punctuality||7))}" required></div>
-      <div class="form-group"><label>Technical Skills (1-10)</label><input name="technical" type="number" min="1" max="10" value="${esc(String(ev.technical||7))}" required></div>
+      <div class="form-group"><label>Punctuality (1-10)</label><input name="punctuality" type="number" min="1" max="10" value="${esc(String(ev.punctuality||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Technical Skills (1-10)</label><input name="technical" type="number" min="1" max="10" value="${esc(String(ev.technical||DEFAULT_EVAL_SCORE))}" required></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Communication (1-10)</label><input name="communication" type="number" min="1" max="10" value="${esc(String(ev.communication||7))}" required></div>
-      <div class="form-group"><label>Initiative (1-10)</label><input name="initiative" type="number" min="1" max="10" value="${esc(String(ev.initiative||7))}" required></div>
+      <div class="form-group"><label>Communication (1-10)</label><input name="communication" type="number" min="1" max="10" value="${esc(String(ev.communication||DEFAULT_EVAL_SCORE))}" required></div>
+      <div class="form-group"><label>Initiative (1-10)</label><input name="initiative" type="number" min="1" max="10" value="${esc(String(ev.initiative||DEFAULT_EVAL_SCORE))}" required></div>
     </div>
     <div class="form-group"><label>Overall Comments</label><textarea name="comments">${esc(ev.comments||'')}</textarea></div>
     <div class="form-actions">
@@ -1384,8 +1399,8 @@ function formAttendance(id) {
       <div class="form-group"><label>Date Recorded</label><input name="recordedAt" type="date" value="${esc(a.recordedAt||today())}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Hours Present</label><input name="hoursPresent" type="number" min="0" max="80" value="${esc(String(a.hoursPresent !== undefined ? a.hoursPresent : 40))}" required></div>
-      <div class="form-group"><label>Hours Absent</label><input name="hoursAbsent" type="number" min="0" max="80" value="${esc(String(a.hoursAbsent||0))}"></div>
+      <div class="form-group"><label>Hours Present</label><input name="hoursPresent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursPresent !== undefined ? a.hoursPresent : 40))}" required></div>
+      <div class="form-group"><label>Hours Absent</label><input name="hoursAbsent" type="number" min="0" max="${MAX_WEEKLY_HOURS}" value="${esc(String(a.hoursAbsent||0))}"></div>
     </div>
     <div class="form-group"><label>Comments</label><textarea name="comments">${esc(a.comments||'')}</textarea></div>
     <div class="form-actions">
@@ -1642,7 +1657,7 @@ function toast(msg, type = 'info') {
   el.className = 'toast toast-' + type;
   el.textContent = { success:'✅', error:'❌', info:'ℹ️' }[type] + ' ' + msg;
   c.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(() => el.remove(), TOAST_DURATION_MS);
 }
 
 /* ==========================================================================
