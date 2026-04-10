@@ -263,6 +263,15 @@
     /* ===== JSON editor ===== */
     .json-editor { font-family: 'Courier New', monospace; font-size: .84rem; background: #f8f4ff; }
 
+    /* ===== Logout button ===== */
+    .btn-logout {
+      padding: 6px 14px; border-radius: 20px; border: 2px solid var(--header-text);
+      background: rgba(255,255,255,.72); color: var(--header-text);
+      font-weight: 600; font-size: .82rem; cursor: pointer;
+      transition: background .18s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,.95); }
+
     /* ===== Responsive ===== */
     @media (max-width: 600px) {
       header { padding: 12px 16px; }
@@ -289,6 +298,10 @@
     <div class="hc-group" id="user-selector-wrap">
       <label for="userSelector">View as:</label>
       <select id="userSelector" onchange="switchUser(this.value)"></select>
+    </div>
+    <div class="hc-group" id="session-info" style="display:none;">
+      <span id="session-display-name" style="font-size:.85rem;font-weight:600;"></span>
+      <button class="btn-logout" id="btn-logout" onclick="logout()" title="Sign out">🚪 Logout</button>
     </div>
   </div>
 </header>
@@ -1662,11 +1675,55 @@ function toast(msg, type = 'info') {
 }
 
 /* ==========================================================================
+   AUTH  — guard & session
+   ========================================================================== */
+const AUTH_SESSION_KEY = 'iles_auth_session';
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem(AUTH_SESSION_KEY)); } catch { return null; }
+}
+
+function logout() {
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  window.location.href = 'login.html';
+}
+
+/* ==========================================================================
    INIT
    ========================================================================== */
-DB.seed();
-populateUserSelector('student');
-renderStudent();
+/* Auth guard — redirect to login if no active session.
+   replace() is intentional: it removes dashboard.html from the browser history
+   so the Back button cannot return to a page the user is no longer authenticated for. */
+const _session = getSession();
+if (!_session) {
+  window.location.replace('login.html');
+} else {
+  /* Show user info in header */
+  const sessionInfo = document.getElementById('session-info');
+  const sessionName = document.getElementById('session-display-name');
+  sessionInfo.style.display = 'flex';
+  sessionName.textContent   = _session.displayName + ' (' + _session.role + ')';
+
+  DB.seed();
+
+  /* Pre-select the user's role and user */
+  const roleSel = document.getElementById('roleSelector');
+  if (roleSel) roleSel.value = _session.role;
+  populateUserSelector(_session.role);
+
+  /* If there is a matching user in the store, pre-select them */
+  const matchingUser = DB.get(KEYS.users).find(u => u.id === _session.userId);
+  if (matchingUser) {
+    state.role   = _session.role;
+    state.userId = matchingUser.id;
+    const userSel = document.getElementById('userSelector');
+    if (userSel) userSel.value = matchingUser.id;
+  } else {
+    state.role = _session.role;
+  }
+
+  renderRole();
+}
 </script>
 </body>
 </html>
