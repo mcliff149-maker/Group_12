@@ -1,3 +1,5 @@
+import { isBackendEnabled, apiFetch } from './client.js';
+
 const VERIFICATIONS_KEY = 'iles_f2_verifications';
 
 const MOCK_STUDENTS = [
@@ -6,10 +8,16 @@ const MOCK_STUDENTS = [
 ];
 
 export async function getStudentsForSupervisor(supervisorUsername) {
+  if (isBackendEnabled()) {
+    return apiFetch('/supervisors/students');
+  }
   return MOCK_STUDENTS;
 }
 
 export async function submitVerification(supervisorUsername, data) {
+  if (isBackendEnabled()) {
+    return apiFetch('/supervisors/verifications', { method: 'POST', body: JSON.stringify(data) });
+  }
   const raw = localStorage.getItem(VERIFICATIONS_KEY);
   const all = raw ? JSON.parse(raw) : [];
   const entry = { ...data, id: `ver_${Date.now()}`, supervisorUsername, createdAt: new Date().toISOString() };
@@ -19,6 +27,9 @@ export async function submitVerification(supervisorUsername, data) {
 }
 
 export async function getVerifications(supervisorUsername) {
+  if (isBackendEnabled()) {
+    return apiFetch('/supervisors/verifications');
+  }
   const raw = localStorage.getItem(VERIFICATIONS_KEY);
   const all = raw ? JSON.parse(raw) : [];
   return all.filter(v => v.supervisorUsername === supervisorUsername);

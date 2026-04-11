@@ -1,3 +1,5 @@
+import { isBackendEnabled, apiFetch } from './client.js';
+
 const ACCOUNTS_KEY = 'iles_f2_accounts';
 
 /**
@@ -36,6 +38,9 @@ function saveAccounts(accounts) {
 }
 
 export async function signIn(username, password, role) {
+  if (isBackendEnabled()) {
+    return apiFetch('/auth/signin', { method: 'POST', body: JSON.stringify({ username, password, role }) });
+  }
   const accounts = loadAccounts();
   const hash = hashCredential(password);
   const account = accounts.find(
@@ -49,6 +54,9 @@ export async function signIn(username, password, role) {
 }
 
 export async function signUp(data) {
+  if (isBackendEnabled()) {
+    return apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify(data) });
+  }
   const accounts = loadAccounts();
   if (accounts.find(a => a.username === data.username)) {
     throw new Error('Username already taken.');
@@ -70,10 +78,16 @@ export async function signUp(data) {
 }
 
 export async function getAccounts() {
+  if (isBackendEnabled()) {
+    return apiFetch('/admin/users');
+  }
   return loadAccounts();
 }
 
 export async function disableAccount(username) {
+  if (isBackendEnabled()) {
+    return apiFetch(`/admin/users/${encodeURIComponent(username)}/toggle-disable`, { method: 'PATCH' });
+  }
   const accounts = loadAccounts();
   const idx = accounts.findIndex(a => a.username === username);
   if (idx === -1) throw new Error('User not found.');
