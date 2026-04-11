@@ -1,0 +1,17 @@
+:root {
+  --color-bg: #f7f3ff;
+  --color-surface: #ffffff;
+  --color-primary: #b39ddb;
+  --color-primary-dark: #7e57c2;
+  --color-secondary: #80cbc4;
+  --color-accent: #ffcc80;
+  --color-success: #a5d6a7;
+  --color-danger: #ef9a9a;
+  --color-warning: #fff59d;
+  --color-text: #37474f;
+  --color-text-muted: #78909c;
+  --color-border: #e0e0e0;
+  --radius: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
