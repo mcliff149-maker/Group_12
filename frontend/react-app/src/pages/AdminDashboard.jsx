@@ -1,24 +1,7 @@
 import { useState } from 'react';
 import NavBar from '../components/NavBar';
 import DashboardEditor from '../components/DashboardEditor';
-import { loadConfig, saveConfig, adminLoadConfig, adminResetConfig, listStoredUsers, DEFAULT_CONFIGS } from '../utils/dashboardConfig';
-
-/* ------------------------------------------------------------------
-   Admin users (only these two may customise their own dashboard)
------------------------------------------------------------------- */
-const ADMIN_USERNAMES = ['admin1', 'admin2'];
-
-/* ------------------------------------------------------------------
-   Initial mock user data
------------------------------------------------------------------- */
-const INITIAL_USERS = [
-  { id: 1, name: 'Alice Johnson',     username: 'student1',    email: 'alice@uni.ac',    role: 'student',    active: true  },
-  { id: 2, name: 'Bob Martinez',      username: 'student2',    email: 'bob@uni.ac',      role: 'student',    active: true  },
-  { id: 3, name: 'Dr. Bernard Smith', username: 'academic1',   email: 'bsmith@uni.ac',   role: 'academic',   active: true  },
-  { id: 4, name: 'Carol White',       username: 'supervisor1', email: 'cwhite@corp.com', role: 'supervisor', active: true  },
-  { id: 5, name: 'Eve Torres',        username: 'supervisor2', email: 'etorres@corp.com',role: 'supervisor', active: false },
-  { id: 6, name: 'Frank Mensah',      username: 'student3',    email: 'fmensah@uni.ac',  role: 'student',    active: true  },
-];
+import { loadConfig, saveConfig, adminLoadConfig, adminResetConfig } from '../utils/dashboardConfig';
 
 const ROLE_LABELS = {
   student:    '🎓 Student',
@@ -27,16 +10,14 @@ const ROLE_LABELS = {
   admin:      '⚙️ Admin',
 };
 
-let userCounter = INITIAL_USERS.length + 1;
+let userCounter = 1;
 
 const TABS = ['users', 'dashboards'];
 
 export default function AdminDashboard({ user }) {
   const username = user.username ?? user.name;
-  const isAdminUser = ADMIN_USERNAMES.includes(username);
 
-  // ── admin self-customisation (only for the two admin accounts) ─
-  const [config, setConfig]   = useState(() => isAdminUser ? loadConfig(username, 'admin') : null);
+  const [config, setConfig]   = useState(() => loadConfig(username, 'admin'));
   const [editing, setEditing] = useState(false);
 
   function handleSaveSelf(updated) {
@@ -50,7 +31,7 @@ export default function AdminDashboard({ user }) {
   const [tab, setTab]         = useState('users');
 
   // ── user management ────────────────────────────────────────────
-  const [users, setUsers]     = useState(INITIAL_USERS);
+  const [users, setUsers]     = useState([]);
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'student' });
   const [formErr, setFormErr] = useState({});
   const [filter, setFilter]   = useState('all');
@@ -101,8 +82,8 @@ export default function AdminDashboard({ user }) {
     <div className="dashboard-page">
       <NavBar userName={user.name} role="admin" />
 
-      {/* Admin self-customisation — only for the two admin users */}
-      {isAdminUser && editing && config && (
+      {/* Admin self-customisation */}
+      {editing && config && (
         <DashboardEditor
           widgets={config.widgets}
           onSave={handleSaveSelf}
@@ -119,11 +100,9 @@ export default function AdminDashboard({ user }) {
             <span className="badge badge-admin">System Administrator</span>
             <h2>Admin Dashboard</h2>
           </div>
-          {isAdminUser && (
-            <button className="btn btn-secondary btn-sm" onClick={() => setEditing(true)}>
-              ✏️ Edit My Dashboard
-            </button>
-          )}
+          <button className="btn btn-secondary btn-sm" onClick={() => setEditing(true)}>
+            ✏️ Edit My Dashboard
+          </button>
         </div>
 
         {/* Stats row */}

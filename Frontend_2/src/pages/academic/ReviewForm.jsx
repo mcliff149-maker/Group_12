@@ -6,10 +6,7 @@ import FormField from '../../components/FormField.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getLogs } from '../../api/students.js';
 
-const MOCK_STUDENTS = [
-  { username: 'student1', name: 'Alice Johnson' },
-  { username: 'student2', name: 'Bob Martinez' },
-];
+const ACCOUNTS_KEY = 'iles_f2_accounts';
 const RECOMMENDATIONS = [
   { value: 'Approve', label: 'Approve' },
   { value: 'Reject',  label: 'Reject' },
@@ -25,6 +22,16 @@ function saveReview(review) {
   const reviews = loadReviews();
   reviews.push(review);
   localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+}
+
+function listStudents() {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    const accounts = raw ? JSON.parse(raw) : [];
+    return accounts.filter(a => a.role === 'student').map(s => ({ username: s.username, name: s.name }));
+  } catch {
+    return [];
+  }
 }
 
 const INITIAL = { studentUsername: '', logId: '', score: '', feedback: '', recommendation: '', comments: '', reviewDate: '' };
@@ -80,7 +87,7 @@ export default function ReviewForm() {
   }
 
   const logOptions = logs.map(l => ({ value: l.id, label: `Week ${l.weekNumber} – ${l.logDate} (${l.company})` }));
-  const studentOptions = MOCK_STUDENTS.map(s => ({ value: s.username, label: s.name }));
+  const studentOptions = listStudents().map(s => ({ value: s.username, label: s.name }));
 
   return (
     <div className="page-wrapper">

@@ -4,29 +4,8 @@ import { store } from './store/index.js';
 const COLLECTION = 'users';
 const SALT_ROUNDS = 10;
 
-/** Demo seed accounts – only inserted on first start */
-const DEMO_USERS = [
-  { username: 'student1',    name: 'Alice Johnson',   email: 'alice@iles.edu',    password: 'pass123',  role: 'student',    disabled: false },
-  { username: 'student2',    name: 'Bob Martinez',    email: 'bob@iles.edu',      password: 'pass123',  role: 'student',    disabled: false },
-  { username: 'academic1',   name: 'Dr. Sarah Chen',  email: 'schen@iles.edu',    password: 'pass123',  role: 'academic',   disabled: false },
-  { username: 'supervisor1', name: 'James Wright',    email: 'jwright@corp.com',  password: 'pass123',  role: 'supervisor', disabled: false },
-  { username: 'admin',       name: 'System Admin',    email: 'admin@iles.edu',    password: 'admin123', role: 'admin',      disabled: false },
-];
-
 export async function seedUsers() {
-  const existing = await store.list(COLLECTION);
-  if (existing.length > 0) return;
-  for (const u of DEMO_USERS) {
-    const pwHash = await bcrypt.hash(u.password, SALT_ROUNDS);
-    await store.set(COLLECTION, u.username, {
-      username: u.username,
-      name:     u.name,
-      email:    u.email,
-      pwHash,
-      role:     u.role,
-      disabled: u.disabled,
-    });
-  }
+  return;
 }
 
 export function publicView(user) {

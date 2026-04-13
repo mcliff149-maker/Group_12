@@ -213,7 +213,7 @@ function getAccounts() {
   return JSON.parse(localStorage.getItem(AUTH_ACCOUNTS_KEY) || '[]');
 }
 
-/* Simple hash — XOR-folded djb2.  Not crypto-grade; suitable for a demo. */
+/* Simple hash — XOR-folded djb2 for local-only credential storage. */
 function hashPassword(password) {
   let h = 5381;
   for (let i = 0; i < password.length; i++) {
@@ -222,27 +222,6 @@ function hashPassword(password) {
   }
   return (h >>> 0).toString(16).padStart(8, '0');
 }
-
-/* =========================================================================
-   SEED demo accounts the first time (matches the dashboard seed users)
-   ========================================================================= */
-function seedDemoAccounts() {
-  if (localStorage.getItem('iles_demo_accounts_seeded')) return;
-  const demo = [
-    { username:'alice',     passwordHash: hashPassword('alice123'),     role:'student',    displayName:'Alice Mwangi',    userId:'u1' },
-    { username:'brian',     passwordHash: hashPassword('brian123'),     role:'student',    displayName:'Brian Otieno',    userId:'u2' },
-    { username:'carol',     passwordHash: hashPassword('carol123'),     role:'academic',   displayName:'Dr Carol Njeru',  userId:'u3' },
-    { username:'david',     passwordHash: hashPassword('david123'),     role:'supervisor', displayName:'David Kamau',     userId:'u4' },
-    { username:'admin',     passwordHash: hashPassword('admin123'),     role:'admin',      displayName:'Admin User',      userId:'u5' },
-  ];
-  const existing = getAccounts();
-  const existingUsernames = new Set(existing.map(a => a.username));
-  demo.forEach(d => { if (!existingUsernames.has(d.username)) existing.push(d); });
-  localStorage.setItem(AUTH_ACCOUNTS_KEY, JSON.stringify(existing));
-  localStorage.setItem('iles_demo_accounts_seeded', '1');
-}
-
-seedDemoAccounts();
 
 /* ==========================================================================
    FORM VALIDATION & SUBMIT
