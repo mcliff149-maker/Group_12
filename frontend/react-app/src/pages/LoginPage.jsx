@@ -1,18 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-
-/* ------------------------------------------------------------------
-   Mock user list — in a real app this would be an API call.
-   Matches the seed accounts from the existing HTML pages.
------------------------------------------------------------------- */
-const MOCK_USERS = [
-  { username: 'student1',    password: 'pass123', role: 'student',    name: 'Alice Johnson' },
-  { username: 'student2',    password: 'pass123', role: 'student',    name: 'Bob Martinez' },
-  { username: 'academic1',   password: 'pass123', role: 'academic',   name: 'Dr. Bernard Smith' },
-  { username: 'supervisor1', password: 'pass123', role: 'supervisor', name: 'Carol White' },
-  { username: 'admin1',      password: 'pass123', role: 'admin',      name: 'Dave Admin' },
-  { username: 'admin2',      password: 'pass123', role: 'admin',      name: 'Eve Admin' },
-];
+import { listLocalAccounts, hashCredential } from '../utils/localAccounts';
 
 const ROLE_ROUTES = {
   student:    '/dashboard/student',
@@ -48,14 +36,16 @@ export default function LoginPage() {
     const e2 = validate();
     if (Object.keys(e2).length) { setErrors(e2); return; }
 
-    const user = MOCK_USERS.find(
-      u => u.username === form.username.trim() &&
-           u.password === form.password &&
-           u.role     === form.role
+    const identifier = form.username.trim().toLowerCase();
+    const user = listLocalAccounts().find(
+      u =>
+        (u.username?.toLowerCase() === identifier || u.email?.toLowerCase() === identifier) &&
+        u.passwordHash === hashCredential(form.password) &&
+        u.role === form.role
     );
 
     if (!user) {
-      setBanner('Invalid credentials or role. Check the demo accounts below.');
+      setBanner('Invalid credentials or role.');
       return;
     }
 
@@ -84,7 +74,7 @@ export default function LoginPage() {
                 name="username"
                 type="text"
                 autoComplete="username"
-                placeholder="e.g. student1"
+                placeholder="e.g. jane01 or jane@example.com"
                 value={form.username}
                 onChange={handleChange}
                 className={errors.username ? 'error' : ''}
@@ -134,27 +124,6 @@ export default function LoginPage() {
             Don't have an account? <Link to="/signup">Sign up</Link>
           </p>
 
-          <details style={{ marginTop: '1.2rem', fontSize: '.78rem', color: 'var(--text-muted)' }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Demo accounts</summary>
-            <table style={{ marginTop: '.5rem', width: '100%', fontSize: '.76rem' }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left' }}>Username</th>
-                  <th style={{ textAlign: 'left' }}>Password</th>
-                  <th style={{ textAlign: 'left' }}>Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MOCK_USERS.map(u => (
-                  <tr key={u.username}>
-                    <td>{u.username}</td>
-                    <td>pass123</td>
-                    <td>{u.role}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </details>
         </div>
       </div>
     </div>

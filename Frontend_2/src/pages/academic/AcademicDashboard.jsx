@@ -5,8 +5,18 @@ import Sidebar from '../../components/Sidebar.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getLogs } from '../../api/students.js';
 
-const MOCK_ASSIGNED = ['student1', 'student2'];
 const REVIEWS_KEY   = 'iles_f2_reviews';
+const ACCOUNTS_KEY = 'iles_f2_accounts';
+
+function listAssignedStudents() {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    const accounts = raw ? JSON.parse(raw) : [];
+    return accounts.filter(a => a.role === 'student').map(a => a.username);
+  } catch {
+    return [];
+  }
+}
 
 function loadReviews() {
   const raw = localStorage.getItem(REVIEWS_KEY);
@@ -17,9 +27,12 @@ export default function AcademicDashboard() {
   const { user }   = useAuth();
   const [allLogs, setAllLogs]   = useState([]);
   const [reviews, setReviews]   = useState([]);
+  const [assigned, setAssigned] = useState([]);
 
   useEffect(() => {
-    Promise.all(MOCK_ASSIGNED.map(u => getLogs(u).then(ls => ls.map(l => ({ ...l, studentUsername: u }))))).then(results => {
+    const students = listAssignedStudents();
+    setAssigned(students);
+    Promise.all(students.map(u => getLogs(u).then(ls => ls.map(l => ({ ...l, studentUsername: u }))))).then(results => {
       setAllLogs(results.flat());
     });
     setReviews(loadReviews());
@@ -44,7 +57,7 @@ export default function AcademicDashboard() {
           <div className="dashboard-grid">
             <div className="stat-card">
               <span className="stat-label">Students Assigned</span>
-              <span className="stat-value">{MOCK_ASSIGNED.length}</span>
+              <span className="stat-value">{assigned.length}</span>
             </div>
             <div className="stat-card">
               <span className="stat-label">Pending Reviews</span>

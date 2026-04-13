@@ -1,17 +1,25 @@
 import { isBackendEnabled, apiFetch } from './client.js';
 
 const VERIFICATIONS_KEY = 'iles_f2_verifications';
+const ACCOUNTS_KEY = 'iles_f2_accounts';
 
-const MOCK_STUDENTS = [
-  { username: 'student1', name: 'Alice Johnson',  email: 'alice@iles.edu', program: 'Computer Science', university: 'State University' },
-  { username: 'student2', name: 'Bob Martinez',   email: 'bob@iles.edu',   program: 'Information Systems', university: 'Tech College' },
-];
+function loadStudentAccounts() {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    const accounts = raw ? JSON.parse(raw) : [];
+    return accounts
+      .filter(a => a.role === 'student')
+      .map(a => ({ username: a.username, name: a.name, email: a.email, program: '', university: '' }));
+  } catch {
+    return [];
+  }
+}
 
 export async function getStudentsForSupervisor(supervisorUsername) {
   if (isBackendEnabled()) {
     return apiFetch('/supervisors/students');
   }
-  return MOCK_STUDENTS;
+  return loadStudentAccounts();
 }
 
 export async function submitVerification(supervisorUsername, data) {

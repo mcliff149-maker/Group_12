@@ -14,8 +14,7 @@
 
   SWITCHING USERS (within a role):
     Once a role is selected, use the "View as" dropdown next to the role
-    selector to simulate a specific user of that role (pre-seeded demo users
-    are created automatically on first load).
+    selector to switch between users already created in your local browser.
 
   DATA STORAGE:
     All data is persisted in localStorage under the "iles_*" key namespace.
@@ -547,51 +546,17 @@ const DB = {
   },
 
   seed() {
-    if (localStorage.getItem(SEED_KEY)) return;
-
-    DB.save(KEYS.users, [
-      { id:'u1', name:'Alice Mwangi',  email:'alice@example.com',  role:'student',    studentId:'ST2024001', program:'Computer Science',      phone:'+254 700 000 001', year:'3',  createdAt:'2024-01-01T00:00:00Z' },
-      { id:'u2', name:'Brian Otieno',  email:'brian@example.com',  role:'student',    studentId:'ST2024002', program:'Information Technology', phone:'+254 700 000 002', year:'2',  createdAt:'2024-01-01T00:00:00Z' },
-      { id:'u3', name:'Dr Carol Njeru',email:'carol@example.com',  role:'academic',   department:'CS Dept',  staffId:'AC001',                  phone:'+254 700 000 003',             createdAt:'2024-01-01T00:00:00Z' },
-      { id:'u4', name:'David Kamau',   email:'david@example.com',  role:'supervisor', company:'TechCorp Ltd',designation:'Senior Engineer',    phone:'+254 700 000 004',             createdAt:'2024-01-01T00:00:00Z' },
-      { id:'u5', name:'Admin User',    email:'admin@example.com',  role:'admin',                                                               phone:'+254 700 000 005',             createdAt:'2024-01-01T00:00:00Z' },
-    ]);
-
-    DB.save(KEYS.companies, [
-      { id:'c1', name:'TechCorp Ltd',  industry:'Information Technology', address:'123 Tech Ave, Nairobi',   email:'hr@techcorp.com',  phone:'+254 20 000 001', createdAt:'2024-01-01T00:00:00Z' },
-      { id:'c2', name:'FinServe Ltd',  industry:'Financial Services',     address:'456 Finance Rd, Nairobi', email:'hr@finserve.com',  phone:'+254 20 000 002', createdAt:'2024-01-01T00:00:00Z' },
-    ]);
-
-    DB.save(KEYS.placements, [
-      { id:'p1', studentId:'u1', companyId:'c1', supervisorId:'u4', academicId:'u3', role:'Software Intern',     startDate:'2024-06-01', endDate:'2024-08-31', status:'active',    description:'Developing web applications using React and Node.js.', createdAt:'2024-05-20T00:00:00Z' },
-      { id:'p2', studentId:'u2', companyId:'c2', supervisorId:'u4', academicId:'u3', role:'Data Analyst Intern', startDate:'2024-06-01', endDate:'2024-08-31', status:'active',    description:'Analysing financial data and building dashboards.',    createdAt:'2024-05-21T00:00:00Z' },
-    ]);
-
-    DB.save(KEYS.logs, [
-      { id:'l1', placementId:'p1', studentId:'u1', weekNumber:1, hours:40, activities:'Set up dev environment; attended onboarding.', challenges:'Understanding codebase structure.',     skills:'Git, React basics',  submittedAt:'2024-06-08T10:00:00Z', isApproved:true,  academicComment:'Good start!',       supervisorComment:'Well done.',        createdAt:'2024-06-08T10:00:00Z' },
-      { id:'l2', placementId:'p1', studentId:'u1', weekNumber:2, hours:38, activities:'Worked on UI components for the dashboard.',  challenges:'State management in React.',           skills:'React hooks, CSS Grid', submittedAt:'2024-06-15T10:00:00Z', isApproved:false, academicComment:'',                  supervisorComment:'',                  createdAt:'2024-06-15T10:00:00Z' },
-      { id:'l3', placementId:'p2', studentId:'u2', weekNumber:1, hours:42, activities:'Analysed Q1 sales data; created pivot tables.', challenges:'Data quality issues in source files.', skills:'Excel, SQL basics',  submittedAt:'2024-06-08T10:00:00Z', isApproved:true,  academicComment:'',                  supervisorComment:'Excellent effort.', createdAt:'2024-06-08T10:00:00Z' },
-    ]);
-
-    DB.save(KEYS.notes, [
-      { id:'mn1', placementId:'p1', authorId:'u3', date:'2024-06-10', notes:'Discussed UI component progress. Alice is on track. Suggested reviewing React useEffect docs.', createdAt:'2024-06-10T12:00:00Z' },
-    ]);
-
-    DB.save(KEYS.acadEvals, [
-      { id:'ae1', placementId:'p1', evaluatorId:'u3', reportQuality:8, logCompleteness:9, outcomes:8, presentation:7, comments:'Very good progress. Report structure needs slight improvement.', evaluatedAt:'2024-08-10T00:00:00Z', createdAt:'2024-08-10T00:00:00Z' },
-    ]);
-
-    DB.save(KEYS.supReviews, [
-      { id:'sr1', placementId:'p1', reviewerId:'u4', reviewType:'midterm', punctuality:9, technical:8, communication:8, initiative:7, comments:'Alice shows strong technical skills and is always on time.', reviewedAt:'2024-07-15T00:00:00Z', createdAt:'2024-07-15T00:00:00Z' },
-    ]);
-
-    DB.save(KEYS.attendance, [
-      { id:'at1', placementId:'p1', supervisorId:'u4', studentId:'u1', week:'Week 1', hoursPresent:40, hoursAbsent:0, comments:'Perfect attendance.', recordedAt:'2024-06-08', createdAt:'2024-06-08T00:00:00Z' },
-    ]);
-
-    DB.save(KEYS.reports, []);
-
-    DB.save(KEYS.templates, [
+    const defaults = {
+      users: [],
+      companies: [],
+      placements: [],
+      logs: [],
+      notes: [],
+      acadEvals: [],
+      supReviews: [],
+      attendance: [],
+      reports: [],
+      templates: [
       { id:'t1', name:'Mid-Term Supervisor Evaluation', createdAt:'2024-01-01T00:00:00Z', fields:[
         { name:'punctuality',   label:'Punctuality (1-10)',      type:'number'   },
         { name:'technical',     label:'Technical Skills (1-10)', type:'number'   },
@@ -606,16 +571,18 @@ const DB = {
         { name:'presentation',     label:'Presentation (1-10)',      type:'number'   },
         { name:'comments',         label:'Comments',                 type:'textarea' },
       ]},
-    ]);
-
-    localStorage.setItem(SEED_KEY, '1');
+      ],
+    };
+    Object.entries(defaults).forEach(([k, v]) => {
+      const storageKey = KEYS[k];
+      if (!localStorage.getItem(storageKey)) DB.save(storageKey, v);
+    });
   },
 };
 
 /* ==========================================================================
    CONSTANTS
    ========================================================================== */
-const SEED_KEY             = 'iles_seeded_v2';
 const MAX_STUDY_YEAR       = 6;
 const MAX_WEEK_NUMBER      = 52;
 const MAX_WEEKLY_HOURS     = 80;

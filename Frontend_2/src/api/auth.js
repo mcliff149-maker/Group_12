@@ -14,23 +14,14 @@ function hashCredential(value) {
   return (h >>> 0).toString(16);
 }
 
-const DEMO_ACCOUNTS = [
-  { username: 'student1',    name: 'Alice Johnson',  email: 'alice@iles.edu',    pwHash: hashCredential('pass123'),  role: 'student',    disabled: false },
-  { username: 'academic1',   name: 'Dr. Sarah Chen', email: 'schen@iles.edu',    pwHash: hashCredential('pass123'),  role: 'academic',   disabled: false },
-  { username: 'supervisor1', name: 'James Wright',   email: 'jwright@corp.com',  pwHash: hashCredential('pass123'),  role: 'supervisor', disabled: false },
-  { username: 'admin',       name: 'System Admin',   email: 'admin@iles.edu',    pwHash: hashCredential('admin123'), role: 'admin',      disabled: false },
-  { username: 'student2',    name: 'Bob Martinez',   email: 'bob@iles.edu',      pwHash: hashCredential('pass123'),  role: 'student',    disabled: false },
-];
-
-function seedAccounts() {
-  if (!localStorage.getItem(ACCOUNTS_KEY)) {
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(DEMO_ACCOUNTS));
-  }
-}
-
 function loadAccounts() {
-  seedAccounts();
-  return JSON.parse(localStorage.getItem(ACCOUNTS_KEY));
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 function saveAccounts(accounts) {

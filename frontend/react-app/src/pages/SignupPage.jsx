@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { listLocalAccounts, saveLocalAccounts, hashCredential } from '../utils/localAccounts';
 
 const ROLE_ROUTES = {
   student:    '/dashboard/student',
@@ -12,7 +13,7 @@ export default function SignupPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: '', email: '', password: '', confirm: '', role: '',
+    name: '', username: '', email: '', password: '', confirm: '', role: '',
   });
   const [errors, setErrors]   = useState({});
   const [success, setSuccess] = useState('');
@@ -20,6 +21,9 @@ export default function SignupPage() {
   function validate() {
     const e = {};
     if (!form.name.trim())       e.name    = 'Full name is required.';
+    if (!form.username.trim())   e.username = 'Username is required.';
+    else if (form.username.trim().length < 3)
+                                 e.username = 'Username must be at least 3 characters.';
     if (!form.email.trim())      e.email   = 'Email is required.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
                                  e.email   = 'Enter a valid email address.';
@@ -45,8 +49,26 @@ export default function SignupPage() {
     if (Object.keys(e2).length) { setErrors(e2); return; }
 
     const role = form.role || 'student';
-    /* Store in sessionStorage and redirect */
-    sessionStorage.setItem('iles_user', JSON.stringify({ name: form.name, role }));
+    const username = form.username.trim().toLowerCase();
+    const email = form.email.trim().toLowerCase();
+    const accounts = listLocalAccounts();
+    if (accounts.some(a => a.username === username)) {
+      setErrors(prev => ({ ...prev, username: 'That username is already taken.' }));
+      return;
+    }
+    if (accounts.some(a => a.email === email)) {
+      setErrors(prev => ({ ...prev, email: 'That email is already registered.' }));
+      return;
+    }
+    accounts.push({
+      name: form.name.trim(),
+      username,
+      email,
+      role,
+      passwordHash: hashCredential(form.password),
+    });
+    saveLocalAccounts(accounts);
+    sessionStorage.setItem('iles_user', JSON.stringify({ name: form.name.trim(), username, role }));
     setSuccess('Account created! Redirecting…');
     setTimeout(() => navigate(ROLE_ROUTES[role]), 1000);
   }
@@ -86,6 +108,18 @@ export default function SignupPage() {
                 className={errors.email ? 'error' : ''}
               />
               {errors.email && <span className="field-error">{errors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                id="username" name="username" type="text"
+                autoComplete="username"
+                placeholder="jane01"
+                value={form.username} onChange={handleChange}
+                className={errors.username ? 'error' : ''}
+              />
+              {errors.username && <span className="field-error">{errors.username}</span>}
             </div>
 
             <div className="form-row">

@@ -63,12 +63,6 @@ export default function LoginPage() {
         <h1>Welcome to ILES</h1>
         <p className="subtitle">Sign in to your account</p>
 
-        <div className="demo-hint">
-          <strong>Demo Credentials</strong>
-          student1 / pass123 · academic1 / pass123<br />
-          supervisor1 / pass123 · admin / admin123
-        </div>
-
         {apiError && <div className="alert alert-danger">{apiError}</div>}
 
         <form onSubmit={handleSubmit} noValidate>

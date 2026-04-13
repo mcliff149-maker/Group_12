@@ -400,17 +400,6 @@ a {
   text-align: center;
 }
 
-.demo-hint {
-  background: #ede7f6;
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  font-size: 0.82rem;
-  color: var(--color-primary-dark);
-  margin-bottom: 18px;
-}
-
-.demo-hint strong { display: block; margin-bottom: 4px; }
-
 /* Section title */
 .section-title {
   font-size: 1rem;
