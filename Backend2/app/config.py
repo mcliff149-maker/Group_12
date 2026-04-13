@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     refresh_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
+    # CORS – comma-separated list of allowed origins, or "*" to allow all (dev only)
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
     # App
     app_name: str = "ILES API"
     debug: bool = False

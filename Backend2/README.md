@@ -7,7 +7,7 @@ A lightweight REST API for the **ILES (Internship Logging & Evaluation System)**
 | Framework | [FastAPI](https://fastapi.tiangolo.com/) |
 | Database | SQLite (file-based) via [SQLAlchemy 2](https://docs.sqlalchemy.org/) |
 | Authentication | JWT (access + refresh tokens) via [python-jose](https://github.com/mpdavis/python-jose) |
-| Password hashing | [passlib\[bcrypt\]](https://passlib.readthedocs.io/) |
+| Password hashing | [bcrypt](https://github.com/pyca/bcrypt/) |
 | Validation | [Pydantic v2](https://docs.pydantic.dev/) |
 | ASGI server | [Uvicorn](https://www.uvicorn.org/) |
 
