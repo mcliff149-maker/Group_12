@@ -17,7 +17,7 @@ async function run() {
 
     if (!username || username.length < 3) throw new Error('Username must be at least 3 characters.');
     if (!name) throw new Error('Full name is required.');
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) throw new Error('A valid email is required.');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error('A valid email is required.');
     if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
     if (await findByUsername(username)) throw new Error(`Username "${username}" already exists.`);
     if (await findByEmail(email)) throw new Error(`Email "${email}" is already registered.`);
@@ -30,6 +30,6 @@ async function run() {
 }
 
 run().catch(err => {
-  console.error(err.message);
+  console.error('Failed to create admin user.');
   process.exit(1);
 });

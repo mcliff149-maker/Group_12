@@ -28,7 +28,9 @@ function listStudents() {
   try {
     const raw = localStorage.getItem(ACCOUNTS_KEY);
     const accounts = raw ? JSON.parse(raw) : [];
-    return accounts.filter(a => a.role === 'student').map(s => ({ username: s.username, name: s.name }));
+    return accounts
+      .filter(a => a.role === 'student' && a.username)
+      .map(s => ({ username: s.username, name: s.name || s.username }));
   } catch {
     return [];
   }

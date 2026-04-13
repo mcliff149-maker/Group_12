@@ -9,7 +9,13 @@ function loadStudentAccounts() {
     const accounts = raw ? JSON.parse(raw) : [];
     return accounts
       .filter(a => a.role === 'student')
-      .map(a => ({ username: a.username, name: a.name, email: a.email, program: '', university: '' }));
+      .map(a => ({
+        username: a.username,
+        name: a.name || a.username,
+        email: a.email || '',
+        program: a.program || '',
+        university: a.university || '',
+      }));
   } catch {
     return [];
   }
