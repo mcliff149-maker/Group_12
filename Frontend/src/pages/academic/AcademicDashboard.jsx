@@ -22,7 +22,7 @@ export default function AcademicDashboard() {
       );
     }).then(results => {
       setAllLogs(results.flat());
-    });
+    }).catch(() => {});
   }, []);
 
   const reviewed   = reviews.length;

@@ -32,7 +32,7 @@ export default function SupervisorProfile() {
         phone:      pd.phone      || '',
       });
     }).finally(() => setLoading(false));
-  }, [user]);
+  }, []);
 
   function handleChange(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));

@@ -36,7 +36,7 @@ export default function StudentProfile() {
         supervisorContact: pd.supervisorContact || '',
       });
     }).finally(() => setLoading(false));
-  }, [user]);
+  }, []);
 
   function handleChange(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));

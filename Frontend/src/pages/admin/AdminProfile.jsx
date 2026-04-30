@@ -28,7 +28,7 @@ export default function AdminProfile() {
         organization: pd.organization || '',
       });
     }).finally(() => setLoading(false));
-  }, [user]);
+  }, []);
 
   function handleChange(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
