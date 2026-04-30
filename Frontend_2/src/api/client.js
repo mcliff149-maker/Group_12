@@ -57,7 +57,7 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (!res.ok) {
-    throw new Error(body.message ?? `HTTP ${res.status}`);
+    throw new Error(body.message ?? body.detail ?? `HTTP ${res.status}`);
   }
 
   return body;

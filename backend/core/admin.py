@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import (
     CustomUser, Company, Student, InternshipPlacement,
     WeeklyLog, SupervisorReview, AcademicEvaluation, WeightedScore,
+    Log, Timesheet, Verification, Review,
 )
 
 
@@ -59,3 +60,31 @@ class WeightedScoreAdmin(admin.ModelAdmin):
     list_display = ('placement', 'supervisor_score', 'academic_score', 'log_score', 'final_score', 'grade', 'computed_at')
     list_filter = ('grade',)
     search_fields = ('placement__student__reg_number',)
+
+
+@admin.register(Log)
+class LogAdmin(admin.ModelAdmin):
+    list_display = ('user', 'week_number', 'log_date', 'company', 'hours_worked', 'status', 'created_at')
+    list_filter = ('status', 'log_date')
+    search_fields = ('user__username', 'company', 'activities')
+
+
+@admin.register(Timesheet)
+class TimesheetAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date', 'start_time', 'end_time', 'hours', 'status')
+    list_filter = ('status', 'date')
+    search_fields = ('user__username', 'task_description')
+
+
+@admin.register(Verification)
+class VerificationAdmin(admin.ModelAdmin):
+    list_display = ('supervisor', 'student_username', 'period_start', 'period_end', 'hours_completed', 'performance', 'created_at')
+    list_filter = ('performance', 'created_at')
+    search_fields = ('supervisor__username', 'student_username')
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('reviewer', 'student_username', 'log_id', 'score', 'recommendation', 'review_date', 'created_at')
+    list_filter = ('recommendation', 'review_date')
+    search_fields = ('reviewer__username', 'student_username', 'feedback')

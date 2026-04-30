@@ -209,3 +209,112 @@ class WeightedScore(models.Model):
             self.grade = 'F'
 
         self.save()
+
+
+# ── REST API models (used by the React frontend) ──────────────────────────────
+
+class Log(models.Model):
+    """Simple weekly log entry — used by the REST API / React frontend."""
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'),
+        ('Submitted', 'Submitted'),
+    ]
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='logs')
+    week_number = models.IntegerField()
+    log_date = models.DateField()
+    company = models.CharField(max_length=200)
+    activities = models.TextField()
+    challenges = models.TextField()
+    learning_outcomes = models.TextField()
+    hours_worked = models.FloatField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-log_date']
+
+    def __str__(self):
+        return f'Log W{self.week_number} – {self.user.username}'
+
+
+class Timesheet(models.Model):
+    """Daily timesheet entry — used by the REST API / React frontend."""
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
+    ]
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='timesheets')
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    hours = models.FloatField()
+    task_description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f'Timesheet {self.date} – {self.user.username} ({self.hours}h)'
+
+
+class Verification(models.Model):
+    """Supervisor's verification of a student's internship period."""
+    PERFORMANCE_CHOICES = [
+        ('Excellent', 'Excellent'),
+        ('Good', 'Good'),
+        ('Satisfactory', 'Satisfactory'),
+        ('Needs Improvement', 'Needs Improvement'),
+    ]
+    supervisor = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='verifications',
+        limit_choices_to={'role': 'supervisor'},
+    )
+    student_username = models.CharField(max_length=150)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    hours_completed = models.FloatField()
+    performance = models.CharField(max_length=30, choices=PERFORMANCE_CHOICES)
+    comments = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Verification by {self.supervisor.username} for {self.student_username}'
+
+
+class Review(models.Model):
+    """Academic supervisor's review of a student's log."""
+    RECOMMENDATION_CHOICES = [
+        ('Approve', 'Approve'),
+        ('Reject', 'Reject'),
+        ('Revise', 'Revise'),
+    ]
+    reviewer = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        limit_choices_to={'role': 'academic'},
+    )
+    student_username = models.CharField(max_length=150)
+    log_id = models.CharField(max_length=50)
+    score = models.FloatField()
+    feedback = models.TextField()
+    recommendation = models.CharField(max_length=20, choices=RECOMMENDATION_CHOICES)
+    comments = models.TextField(blank=True)
+    review_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Review by {self.reviewer.username} for {self.student_username} (log {self.log_id})'
+
