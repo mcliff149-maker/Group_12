@@ -11,10 +11,8 @@ weighted grade computation.
 
 | Directory | Description |
 |-----------|-------------|
-| `backend/` | **Combined Django backend** (REST API + Django admin/template views) |
-| `Frontend_2/` | **Combined React frontend** (Vite, role-based routing) |
-| `Backend2/` | Legacy FastAPI service (archived — functionality merged into `backend/`) |
-| `frontend/` | Legacy plain-HTML + React prototype (archived) |
+| `Backend/` | Django backend (REST API + Django admin/template views) |
+| `Frontend/` | React frontend (Vite, role-based routing) |
 
 ---
 
@@ -34,7 +32,7 @@ weighted grade computation.
 ### 1 — Start the Django backend
 
 ```bash
-cd backend
+cd Backend
 
 # Create and activate a virtual environment (recommended)
 python -m venv .venv
@@ -67,7 +65,7 @@ Interactive API docs provided by Django admin: `http://localhost:8000/admin/`
 Open a **second terminal**:
 
 ```bash
-cd Frontend_2
+cd Frontend
 
 # Install dependencies
 npm install
@@ -128,7 +126,7 @@ All protected endpoints require an `Authorization: Bearer <token>` header.
 
 ## Environment variables
 
-### Backend (`backend/`)
+### Backend (`Backend/`)
 
 Django reads settings from environment variables or the defaults in `settings.py`.
 
@@ -138,9 +136,9 @@ Django reads settings from environment variables or the defaults in `settings.py
 | `DJANGO_DEBUG` | `True` | Set to `False` for production |
 | `DJANGO_ALLOWED_HOSTS` | `*` | Comma-separated allowed hosts |
 
-### Frontend (`Frontend_2/`)
+### Frontend (`Frontend/`)
 
-Create `Frontend_2/.env.local` (copy from `.env.local.example`):
+Create `Frontend/.env.local` (copy from `.env.local.example`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -164,7 +162,7 @@ Classic Django views (session-based, server-rendered) are still available at:
 
 | Problem | Fix |
 |---------|-----|
-| `ModuleNotFoundError: djangorestframework` | Run `pip install -r requirements.txt` inside the `backend/` directory |
+| `ModuleNotFoundError: djangorestframework` | Run `pip install -r requirements.txt` inside the `Backend/` directory |
 | CORS errors in browser | Ensure the backend is running on port 8000 and `VITE_API_BASE_URL` in `.env.local` matches |
 | 401 on every API call | Check that `Authorization: Bearer <token>` is being sent; token is stored in `localStorage` under `iles_f2_session` |
 | Port already in use | Change the port: `python manage.py runserver 8001` and update `VITE_API_BASE_URL` accordingly |
