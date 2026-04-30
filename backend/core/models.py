@@ -304,7 +304,7 @@ class Review(models.Model):
         limit_choices_to={'role': 'academic'},
     )
     student_username = models.CharField(max_length=150)
-    log_id = models.CharField(max_length=50)
+    log_id = models.IntegerField()
     score = models.FloatField()
     feedback = models.TextField()
     recommendation = models.CharField(max_length=20, choices=RECOMMENDATION_CHOICES)

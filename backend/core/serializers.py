@@ -124,6 +124,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         ]
 
     studentUsername = serializers.CharField(source='student_username')
-    logId = serializers.CharField(source='log_id')
+    logId = serializers.IntegerField(source='log_id')
     reviewDate = serializers.DateField(source='review_date')
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)

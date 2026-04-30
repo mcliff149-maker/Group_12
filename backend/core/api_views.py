@@ -23,8 +23,9 @@ from .serializers import (
     ReviewSerializer,
 )
 
-User = get_user_model()
-
+def _first_error(serializer_errors):
+    """Return the first validation error message from a serializer's errors dict."""
+    return str(next(iter(serializer_errors.values()))[0])
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ def sign_up(request):
     """POST /api/auth/signup — create a new account."""
     serializer = SignUpSerializer(data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     user = serializer.save()
     return Response(_user_to_dict(user), status=201)
@@ -119,7 +120,7 @@ def admin_users(request):
     # POST
     serializer = CreateUserAdminSerializer(data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     user = serializer.save()
     return Response(_user_to_dict(user), status=201)
@@ -168,7 +169,7 @@ def student_logs(request, username):
         return Response({'message': 'Access denied.'}, status=403)
     serializer = LogSerializer(data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     serializer.save(user=student)
     return Response(serializer.data, status=201)
@@ -192,7 +193,7 @@ def student_log_detail(request, username, log_id):
     # PUT
     serializer = LogSerializer(log, data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     serializer.save()
     return Response(serializer.data)
@@ -216,7 +217,7 @@ def student_timesheets(request, username):
         return Response({'message': 'Access denied.'}, status=403)
     serializer = TimesheetSerializer(data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     serializer.save(user=student)
     return Response(serializer.data, status=201)
@@ -239,7 +240,7 @@ def student_timesheet_detail(request, username, ts_id):
 
     serializer = TimesheetSerializer(entry, data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     serializer.save()
     return Response(serializer.data)
@@ -273,7 +274,7 @@ def supervisor_verifications(request):
 
     serializer = VerificationSerializer(data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     serializer.save(supervisor=request.user)
     return Response(serializer.data, status=201)
@@ -296,7 +297,7 @@ def academic_reviews(request):
 
     serializer = ReviewSerializer(data=request.data)
     if not serializer.is_valid():
-        first_error = next(iter(serializer.errors.values()))[0]
+        first_error = _first_error(serializer.errors)
         return Response({'message': str(first_error)}, status=400)
     serializer.save(reviewer=request.user)
     return Response(serializer.data, status=201)

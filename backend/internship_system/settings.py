@@ -104,4 +104,11 @@ SIMPLE_JWT = {
 }
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
-CORS_ALLOW_ALL_ORIGINS = True
+# In production set DJANGO_CORS_ALLOWED_ORIGINS to a comma-separated list, e.g.:
+#   DJANGO_CORS_ALLOWED_ORIGINS=https://your-app.example.com
+_cors_origins = os.environ.get('DJANGO_CORS_ALLOWED_ORIGINS', '')
+if _cors_origins:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
+else:
+    # Development default: allow all origins
+    CORS_ALLOW_ALL_ORIGINS = True
