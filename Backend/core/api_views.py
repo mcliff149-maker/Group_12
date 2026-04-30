@@ -17,11 +17,14 @@ from .serializers import (
     UserPublicSerializer,
     SignUpSerializer,
     CreateUserAdminSerializer,
+    UpdateProfileSerializer,
     LogSerializer,
     TimesheetSerializer,
     VerificationSerializer,
     ReviewSerializer,
 )
+
+User = get_user_model()
 
 def _first_error(serializer_errors):
     """Return the first validation error message from a serializer's errors dict."""
@@ -38,6 +41,7 @@ def _user_to_dict(user):
         'email': user.email,
         'role': user.role,
         'disabled': not user.is_active,
+        'profileData': user.profile_data or {},
     }
 
 
@@ -100,6 +104,18 @@ def sign_up(request):
 def me(request):
     """GET /api/auth/me — current user."""
     return Response(_user_to_dict(request.user))
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_me(request):
+    """PATCH /api/auth/me — update name, email, and/or profile_data."""
+    serializer = UpdateProfileSerializer(request.user, data=request.data, partial=True)
+    if not serializer.is_valid():
+        first_error = _first_error(serializer.errors)
+        return Response({'message': str(first_error)}, status=400)
+    user = serializer.save()
+    return Response(_user_to_dict(user))
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────────
@@ -313,3 +329,14 @@ def academic_student_logs(request, username):
     student = get_object_or_404(User, username=username)
     logs = Log.objects.filter(user=student)
     return Response(LogSerializer(logs, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def academic_students(request):
+    """GET /api/academic/students — list all active students."""
+    denied = _require_role(request, 'academic', 'admin')
+    if denied:
+        return denied
+    students = User.objects.filter(role='student', is_active=True).order_by('username')
+    return Response([_user_to_dict(u) for u in students])

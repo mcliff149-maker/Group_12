@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/auth/signin', api_views.sign_in, name='api_sign_in'),
     path('api/auth/signup', api_views.sign_up, name='api_sign_up'),
     path('api/auth/me', api_views.me, name='api_me'),
+    path('api/auth/me/update', api_views.update_me, name='api_update_me'),
     # Admin user management
     path('api/admin/users', api_views.admin_users, name='api_admin_users'),
     path('api/admin/users/<str:username>/toggle-disable', api_views.admin_toggle_disable, name='api_admin_toggle_disable'),
@@ -38,6 +39,7 @@ urlpatterns = [
     path('api/supervisors/students', api_views.supervisor_students, name='api_supervisor_students'),
     path('api/supervisors/verifications', api_views.supervisor_verifications, name='api_supervisor_verifications'),
     # Academic
+    path('api/academic/students', api_views.academic_students, name='api_academic_students'),
     path('api/academic/reviews', api_views.academic_reviews, name='api_academic_reviews'),
     path('api/academic/students/<str:username>/logs', api_views.academic_student_logs, name='api_academic_student_logs'),
 ]

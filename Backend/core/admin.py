@@ -78,9 +78,9 @@ class TimesheetAdmin(admin.ModelAdmin):
 
 @admin.register(Verification)
 class VerificationAdmin(admin.ModelAdmin):
-    list_display = ('supervisor', 'student_username', 'period_start', 'period_end', 'hours_completed', 'performance', 'created_at')
-    list_filter = ('performance', 'created_at')
-    search_fields = ('supervisor__username', 'student_username')
+    list_display = ('supervisor', 'intern_username', 'period', 'overall_rating', 'hours_verified', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('supervisor__username', 'intern_username')
 
 
 @admin.register(Review)

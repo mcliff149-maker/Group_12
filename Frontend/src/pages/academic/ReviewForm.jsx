@@ -4,35 +4,13 @@ import Navbar from '../../components/Navbar.jsx';
 import Sidebar from '../../components/Sidebar.jsx';
 import FormField from '../../components/FormField.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { getLogs } from '../../api/students.js';
+import { getStudents, getStudentLogs, submitReview } from '../../api/academic.js';
 
-const ACCOUNTS_KEY = 'iles_f2_accounts';
 const RECOMMENDATIONS = [
   { value: 'Approve', label: 'Approve' },
   { value: 'Reject',  label: 'Reject' },
   { value: 'Revise',  label: 'Request Revision' },
 ];
-const REVIEWS_KEY = 'iles_f2_reviews';
-
-function loadReviews() {
-  const raw = localStorage.getItem(REVIEWS_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-function saveReview(review) {
-  const reviews = loadReviews();
-  reviews.push(review);
-  localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
-}
-
-function listStudents() {
-  try {
-    const raw = localStorage.getItem(ACCOUNTS_KEY);
-    const accounts = raw ? JSON.parse(raw) : [];
-    return accounts.filter(a => a.role === 'student').map(s => ({ username: s.username, name: s.name }));
-  } catch {
-    return [];
-  }
-}
 
 const INITIAL = { studentUsername: '', logId: '', score: '', feedback: '', recommendation: '', comments: '', reviewDate: '' };
 
@@ -40,15 +18,20 @@ export default function ReviewForm() {
   const { user }   = useAuth();
   const navigate   = useNavigate();
 
-  const [form, setForm]       = useState(INITIAL);
-  const [errors, setErrors]   = useState({});
-  const [logs, setLogs]       = useState([]);
-  const [success, setSuccess] = useState('');
-  const [saving, setSaving]   = useState(false);
+  const [form, setForm]         = useState(INITIAL);
+  const [errors, setErrors]     = useState({});
+  const [logs, setLogs]         = useState([]);
+  const [students, setStudents] = useState([]);
+  const [success, setSuccess]   = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  useEffect(() => {
+    getStudents().then(setStudents);
+  }, []);
 
   useEffect(() => {
     if (form.studentUsername) {
-      getLogs(form.studentUsername).then(setLogs);
+      getStudentLogs(form.studentUsername).then(setLogs);
     } else {
       setLogs([]);
     }
@@ -77,7 +60,7 @@ export default function ReviewForm() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSaving(true);
     try {
-      saveReview({ ...form, id: `rev_${Date.now()}`, reviewerUsername: user.username });
+      await submitReview({ ...form, logId: Number(form.logId) });
       setSuccess('Review submitted successfully!');
       setForm(INITIAL);
       setTimeout(() => navigate('/dashboard/academic'), 1500);
@@ -86,8 +69,8 @@ export default function ReviewForm() {
     }
   }
 
-  const logOptions = logs.map(l => ({ value: l.id, label: `Week ${l.weekNumber} – ${l.logDate} (${l.company})` }));
-  const studentOptions = listStudents().map(s => ({ value: s.username, label: s.name }));
+  const logOptions     = logs.map(l => ({ value: l.id, label: `Week ${l.weekNumber} – ${l.logDate} (${l.company})` }));
+  const studentOptions = students.map(s => ({ value: s.username, label: s.name }));
 
   return (
     <div className="page-wrapper">

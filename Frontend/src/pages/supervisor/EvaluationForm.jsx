@@ -31,8 +31,8 @@ export default function EvaluationForm() {
   const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
-    getStudentsForSupervisor(user.username).then(setStudents);
-  }, [user.username]);
+    getStudentsForSupervisor().then(setStudents);
+  }, []);
 
   const overallRating = (() => {
     const vals = [form.punctuality, form.workQuality, form.teamwork, form.communication]

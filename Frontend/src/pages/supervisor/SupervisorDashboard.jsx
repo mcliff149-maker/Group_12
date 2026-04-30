@@ -11,9 +11,9 @@ export default function SupervisorDashboard() {
   const [verifications, setVerifs]    = useState([]);
 
   useEffect(() => {
-    getStudentsForSupervisor(user.username).then(setStudents);
-    getVerifications(user.username).then(setVerifs);
-  }, [user.username]);
+    getStudentsForSupervisor().then(setStudents);
+    getVerifications().then(setVerifs);
+  }, []);
 
   return (
     <div className="page-wrapper">

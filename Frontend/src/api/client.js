@@ -1,18 +1,11 @@
 /**
- * Thin HTTP client for the ILES backend.
+ * Thin HTTP client for the ILES Django backend.
  *
- * When VITE_API_BASE_URL is set (e.g. http://localhost:4000/api)
- * all API calls will be routed to the backend.  If the variable is
- * not set the existing localStorage implementations are used instead
- * (backwards-compatible feature flag).
+ * VITE_API_BASE_URL should be set in .env.local for development.
+ * In production it defaults to /api (served from the same host).
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
-
-/** Returns true when the real backend is configured. */
-export function isBackendEnabled() {
-  return !!BASE_URL;
-}
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 /** Read the stored JWT from session (set by AuthContext on login). */
 function getToken() {

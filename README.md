@@ -102,6 +102,7 @@ The Django backend exposes both session-based HTML views and a JWT REST API.
 | POST | `/api/auth/signin` | — | Sign in → `{user, token}` |
 | POST | `/api/auth/signup` | — | Register a new user |
 | GET  | `/api/auth/me` | ✓ | Current user |
+| PATCH | `/api/auth/me/update` | ✓ | Update profile (name, email, profile_data) |
 | GET  | `/api/admin/users` | admin | List all users |
 | POST | `/api/admin/users` | admin | Create a user |
 | PATCH | `/api/admin/users/:username/toggle-disable` | admin | Enable/disable user |
@@ -116,6 +117,7 @@ The Django backend exposes both session-based HTML views and a JWT REST API.
 | GET  | `/api/supervisors/students` | supervisor/admin | List students |
 | GET  | `/api/supervisors/verifications` | supervisor/admin | List verifications |
 | POST | `/api/supervisors/verifications` | supervisor/admin | Create verification |
+| GET  | `/api/academic/students` | academic/admin | List all students |
 | GET  | `/api/academic/reviews` | academic/admin | List reviews |
 | POST | `/api/academic/reviews` | academic/admin | Create review |
 | GET  | `/api/academic/students/:username/logs` | academic/admin | View student logs |
@@ -142,9 +144,9 @@ Create `Frontend/.env.local` (copy from `.env.local.example`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_BASE_URL` | *(unset — localStorage mode)* | Set to `http://localhost:8000/api` to use the Django backend |
+| `VITE_API_BASE_URL` | `/api` | Django backend URL. Set to `http://localhost:8000/api` in `.env.local` for development |
 
-> When `VITE_API_BASE_URL` is **not set**, the frontend runs fully in-browser using localStorage (no backend required).
+> When developing locally, copy `.env.local.example` to `.env.local` and ensure the Django backend is running on port 8000.
 
 ---
 
@@ -166,5 +168,5 @@ Classic Django views (session-based, server-rendered) are still available at:
 | CORS errors in browser | Ensure the backend is running on port 8000 and `VITE_API_BASE_URL` in `.env.local` matches |
 | 401 on every API call | Check that `Authorization: Bearer <token>` is being sent; token is stored in `localStorage` under `iles_f2_session` |
 | Port already in use | Change the port: `python manage.py runserver 8001` and update `VITE_API_BASE_URL` accordingly |
-| Stale localStorage data | Open browser DevTools → Application → Storage → clear `iles_f2_*` keys |
+| Stale localStorage data | Open browser DevTools → Application → Storage → clear `iles_f2_session` (session token) |
 

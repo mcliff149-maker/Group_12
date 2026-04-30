@@ -3,25 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar.jsx';
 import Sidebar from '../../components/Sidebar.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { getLogs } from '../../api/students.js';
-
-const REVIEWS_KEY   = 'iles_f2_reviews';
-const ACCOUNTS_KEY = 'iles_f2_accounts';
-
-function listAssignedStudents() {
-  try {
-    const raw = localStorage.getItem(ACCOUNTS_KEY);
-    const accounts = raw ? JSON.parse(raw) : [];
-    return accounts.filter(a => a.role === 'student').map(a => a.username);
-  } catch {
-    return [];
-  }
-}
-
-function loadReviews() {
-  const raw = localStorage.getItem(REVIEWS_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
+import { getStudents, getReviews, getStudentLogs } from '../../api/academic.js';
 
 export default function AcademicDashboard() {
   const { user }   = useAuth();
@@ -30,12 +12,17 @@ export default function AcademicDashboard() {
   const [assigned, setAssigned] = useState([]);
 
   useEffect(() => {
-    const students = listAssignedStudents();
-    setAssigned(students);
-    Promise.all(students.map(u => getLogs(u).then(ls => ls.map(l => ({ ...l, studentUsername: u }))))).then(results => {
+    Promise.all([getStudents(), getReviews()]).then(([students, revs]) => {
+      setAssigned(students);
+      setReviews(revs);
+      return Promise.all(
+        students.map(s =>
+          getStudentLogs(s.username).then(ls => ls.map(l => ({ ...l, studentUsername: s.username })))
+        )
+      );
+    }).then(results => {
       setAllLogs(results.flat());
     });
-    setReviews(loadReviews());
   }, []);
 
   const reviewed   = reviews.length;

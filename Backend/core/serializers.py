@@ -104,15 +104,38 @@ class VerificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Verification
         fields = [
-            'id', 'studentUsername', 'periodStart', 'periodEnd',
-            'hoursCompleted', 'performance', 'comments', 'createdAt',
+            'id', 'internUsername', 'period',
+            'punctuality', 'workQuality', 'teamwork', 'communication',
+            'overallRating', 'hoursVerified', 'comments', 'createdAt',
         ]
 
-    studentUsername = serializers.CharField(source='student_username')
-    periodStart = serializers.DateField(source='period_start')
-    periodEnd = serializers.DateField(source='period_end')
-    hoursCompleted = serializers.FloatField(source='hours_completed')
+    internUsername = serializers.CharField(source='intern_username')
+    workQuality = serializers.IntegerField(source='work_quality')
+    overallRating = serializers.FloatField(source='overall_rating')
+    hoursVerified = serializers.FloatField(source='hours_verified')
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    """Allow the authenticated user to update their own profile."""
+    name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['name', 'email', 'profile_data']
+
+    def update(self, instance, validated_data):
+        name = validated_data.pop('name', None)
+        if name is not None:
+            first_name, *rest = name.split(' ', 1) if name else ('', '')
+            instance.first_name = first_name
+            instance.last_name = rest[0] if rest else ''
+        if 'email' in validated_data:
+            instance.email = validated_data['email']
+        if 'profile_data' in validated_data:
+            instance.profile_data = validated_data['profile_data']
+        instance.save()
+        return instance
 
 
 class ReviewSerializer(serializers.ModelSerializer):

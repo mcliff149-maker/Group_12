@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
         ('admin', 'Admin'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    profile_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return f'{self.username} ({self.role})'
@@ -262,24 +263,21 @@ class Timesheet(models.Model):
 
 
 class Verification(models.Model):
-    """Supervisor's verification of a student's internship period."""
-    PERFORMANCE_CHOICES = [
-        ('Excellent', 'Excellent'),
-        ('Good', 'Good'),
-        ('Satisfactory', 'Satisfactory'),
-        ('Needs Improvement', 'Needs Improvement'),
-    ]
+    """Supervisor's evaluation of a student's internship period."""
     supervisor = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
         related_name='verifications',
         limit_choices_to={'role': 'supervisor'},
     )
-    student_username = models.CharField(max_length=150)
-    period_start = models.DateField()
-    period_end = models.DateField()
-    hours_completed = models.FloatField()
-    performance = models.CharField(max_length=30, choices=PERFORMANCE_CHOICES)
+    intern_username = models.CharField(max_length=150)
+    period = models.CharField(max_length=100)
+    punctuality = models.IntegerField()
+    work_quality = models.IntegerField()
+    teamwork = models.IntegerField()
+    communication = models.IntegerField()
+    overall_rating = models.FloatField()
+    hours_verified = models.FloatField()
     comments = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -287,7 +285,7 @@ class Verification(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'Verification by {self.supervisor.username} for {self.student_username}'
+        return f'Verification by {self.supervisor.username} for {self.intern_username}'
 
 
 class Review(models.Model):
